@@ -273,23 +273,95 @@ void executeLoadsAndStores(uint32_t instruction)
     bool sf = extractBits(instruction, 30, 30);
     uint8_t rt = extractBits(instruction, 0, 4);
 
+    // Check size
+    switch (sf)
+    {
+    case 0:
+        int valueByte = 4; // Size 32 bits
+    case 1:
+        int valueByte = 8; // Size 64 bits
+    }
+
     // Single Data Transfer
     if (extractBits(instruction, 23, 23) == 0 && extractBits(instruction, 25, 29) == 0x1C && extractBits(instruction, 31, 31) == 1)
     {
         bool U = extractBits(instruction, 24, 24);
         bool L = extractBits(instruction, 22, 22);
-        int16_t offset = extractBits(instruction, 10, 21);
+        uint16_t offset = extractBits(instruction, 10, 21);
         uint8_t xn = extractBits(instruction, 5, 9);
 
-        // TODO()
+        // Unsigned Immediate Offset
+        if (U == 1)
+        {
+            uintptr_t ta = state.R[xn] + ((uint64_t) offset) * valueByte;
+        }
+
+        else 
+        {
+            switch (extractBits(offset, 0, 1))
+            {
+            // Pre-Indexed
+            case 3:
+                // Target Address
+                uintptr_t ta = state.R[xn] + extractBits(offset, 2, 9) - (extractBits(offset, 10, 10) * 256);
+
+                // Update Xn
+                state.R[xn] = ta;
+
+
+            // Post-Indexed
+            case 1:
+                // Target Address
+                uintptr_t ta = state.R[xn];
+
+                // Update Xn
+                state.R[xn] = ta + extractBits(offset, 2, 9) - (extractBits(offset, 10, 10) * 256);
+
+            // Register Offset
+            case 2:
+                uint8_t xm = extractBits(offset, 6, 10); //Xm
+
+                // Target Address
+                uintptr_t ta = state.R[xn] + state.R[xm];
+            }
+        }
+
+        switch (L)
+        {
+        // Load Operation
+        case 0:
+            int64_t newValue = 0; // Initialise the loading value
+            
+            for( int i = 0; i < valueByte; i++ )
+            {
+                newValue += (*(ta + i)) << ( i * 8);
+            }
+            // Load to Target Register
+            state.R[rt] = newValue;
+
+        // Store Operation
+        case 1:
+            for( int i = 0; i < valueByte; i++ )
+            {
+                // Store from Register to Target Address
+                *(ta + i) = extractBits(state.R[rt], (i * 8), ((i + 1) * 8 - 1));
+            }
+        }
     }
 
     // Load Literal
     if (extractBits(instruction, 24, 29) == 0x18 && extractBits(instruction, 31, 31) == 0)
     {
         int32_t simm19 = extractBits(instruction, 5, 23);
-
-        // TODO()
+        uintptr_t ta = state.PC + (signExtend(simm19) * 4);
+        int64_t newValue = 0; // Initialise the loading value
+            
+            for( int i = 0; i < valueByte; i++ )
+            {
+                newValue += (*(ta + i)) << ( i * 8);
+            }
+            // Load to Target Register
+            state.R[rt] = newValue;
     }
 
     state.PC += 4;
