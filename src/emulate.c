@@ -208,7 +208,7 @@ void executeDataProcessImmediate(uint32_t instruction)
 void executeDataProcessRegister(uint32_t instruction)
 {
     bool sf = extractBits(instruction, 31, 31);
-    uint8_t opc = extractBits(instruction, 29, 30);
+    // uint8_t opc = extractBits(instruction, 29, 30);
     bool M = extractBits(instruction, 28, 28);
     uint8_t opr = extractBits(instruction, 21, 24);
     uint8_t rm = extractBits(instruction, 16, 20);
@@ -220,17 +220,61 @@ void executeDataProcessRegister(uint32_t instruction)
     {
     case 0:
         uint8_t shift = extractBits(instruction, 22, 23);
-        // Arithmetic
-        if (opr >= 8 && opr % 2 == 0)
+        int32_t op2 = (int32_t)state.R[rm];
+        if (sf == 0)
         {
-            // TODO();
+            // 32 bit
+            switch (shift)
+            {
+            case 0:
+                // lsl (left shift)
+                op2 = op2 << operand;
+            case 1:
+                // lsr (right shift)
+                // Built in sr is asr, so need to cast to unsigned first
+                op2 = (int32_t)((uint32_t)op2 >> operand);
+            case 3:
+                // asr (arithmetic right shift)
+                op2 = op2 >> operand;
+            case 4:
+                // ror (only valid for logic instructions)
+                if (opr < 8)
+                {
+                    int bitWidth = 32;
+                    op2 = op2 >> operand | op2 << (bitWidth - operand);
+                }
+            }
+            // clear least significant 32 bits
+            state.R[rm] &= 0xFFFFFF;
+            state.R[rm] = state.R[rm] | (int64_t)processDataRegisterHelper(instruction, rn, op2);
         }
-        // Bit-logic
-        else if (opr < 8)
+        else if (sf == 1)
         {
-            bool N = extractBits(instruction, 21, 21);
-            // TODO();
+            // 64 bit
+                        switch (shift)
+            {
+            case 0:
+                // lsl (left shift)
+                op2 = op2 << operand;
+            case 1:
+                // lsr (right shift)
+                // Built in sr is asr, so need to cast to unsigned first
+                op2 = (int64_t)((uint64_t)op2 >> operand);
+            case 3:
+                // asr (arithmetic right shift)
+                op2 = op2 >> operand;
+            case 4:
+                // ror (only valid for logic instructions)
+                if (opr < 8)
+                {
+                    int bitWidth = 64;
+                    op2 = op2 >> operand | op2 << (bitWidth - operand);
+                }
+            }
+
+            state.R[rm] = (int64_t)processDataRegisterHelper(instruction, rn, op2);
         }
+
         break;
     case 1:
         // Multiply
@@ -265,6 +309,113 @@ void executeDataProcessRegister(uint32_t instruction)
     }
 
     state.PC += 4;
+}
+
+int processDataRegisterHelper(int instruction, int op1, int op2)
+{
+    bool sf = extractBits(instruction, 31, 31);
+    uint8_t opc = extractBits(instruction, 29, 30);
+    uint8_t opr = extractBits(instruction, 21, 24);
+    int result;
+    // Arithmetic
+    if (opr >= 8 && opr % 2 == 0)
+    {
+        switch (opc)
+        {
+        case 0:
+            // add
+            result = op1 + op2;
+            break;
+        case 1:
+            // adds
+            result = op1 + op2;
+            state.pstate.N = result < 0;
+            state.pstate.Z = result == 0;
+            if (sf == 0) {
+                // 32 bit
+                state.pstate.C = TODO();
+                state.pstate.V = result > INT32_MAX;
+            } else {
+                // 64 bit
+                state.pstate.C = TODO();
+                state.pstate.V = result > INT64_MAX;
+            }
+            break;
+        case 2:
+            // sub
+            result = op1 - op2;
+            break;
+        case 3:
+            // subs
+            result = op1 - op2;
+            state.pstate.N = result < 0;
+            state.pstate.Z = result == 0;
+            if (sf == 0) {
+                // 32 bit
+                state.pstate.C = TODO();
+                state.pstate.V = result < INT64_MIN;
+            } else {
+                // 64 bit
+                state.pstate.C = TODO();
+                state.pstate.V = result < INT64_MIN;
+            }
+            break;
+        }
+    }
+    // Bit-logic
+    else if (opr < 8)
+    {
+        bool N = extractBits(instruction, 21, 21);
+        if (N == 0) {
+        switch (opc)
+        {
+        case 0:
+            // bitwise and
+            result = op1 & op2;
+            break;
+        case 1:
+            // bitwise inclusive or
+            result = op1 | op2;
+            break;
+        case 2:
+            // bitwise exclusive or
+            result = op1 ^ op2;
+            break;
+        case 3:
+            // bitwise and set flags
+            result = op1 & op2;
+            state.pstate.N = result < 0;
+            state.pstate.Z = result == 0;
+            state.pstate.C = 0;
+            state.pstate.V = 0;
+            break;
+        }
+        } else if (N == 1) {
+        switch (opc)
+        {
+        case 0:
+            // bitwise and
+            result = op1 & ~op2;
+            break;
+        case 1:
+            // bitwise inclusive or
+            result = op1 | ~op2;
+            break;
+        case 2:
+            // bitwise exclusive or
+            result = op1 ^ ~op2;
+            break;
+        case 3:
+            // bitwise and set flags
+            result = op1 & ~op2;
+            state.pstate.N = result < 0;
+            state.pstate.Z = result == 0;
+            state.pstate.C = 0;
+            state.pstate.V = 0;
+            break;        }
+        }
+    }
+    return result;
 }
 
 // 1.7 Single Data Transfer Instructions (Single Data Transfer & Load Literal)
