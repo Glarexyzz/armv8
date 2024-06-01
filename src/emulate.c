@@ -6,7 +6,21 @@
 
 // Define constants for memory, halt instruction
 #define MEMORY_SIZE (2 * 1024 * 1024) // 2MB of memory
+#define ZERO_REGISTER_ENCODING 31 // 11111
 #define HALT_INSTRUCTION 0x8a000000   // Halt instruction
+
+// Prototypes for functions
+void binaryFileLoad(const char *inputFileName);
+uint32_t fetch();
+void decode(uint32_t instruction);
+void executeDataProcessImmediate(uint32_t instruction);
+void executeDataProcessRegister(uint32_t instruction);
+void executeLoadsAndStores(uint32_t instruction);
+void executeBranches(uint32_t instruction);
+int processDataRegisterHelper(int instruction, int op1, int op2);
+uint32_t extractBits(uint32_t n, int start, int end);
+int64_t signExtend(int32_t value);
+void printState(const char *outputFileName);
 
 /*
     1.1 An Armv8 Emulator
@@ -15,7 +29,7 @@
 */
 
 // Define structure for the ARMv8 machine state
-uint8_t memory[MEMORY_SIZE]; // Emulated memory
+uint8_t memory[MEMORY_SIZE] = {0}; // Emulated memory
 typedef struct ARMv8_State
 {
     int64_t R[31]; // General Purpose Registers
@@ -31,12 +45,8 @@ typedef struct ARMv8_State
 } ARMv8_State;
 
 // Initialize memory, registers and flags
-memory = {0};
 ARMv8_State state = {
-    .R = {0},
-    .ZR = 0,
-    .PC = 0,
-    .pstate = {false, true, false, false}};
+    .R = {0}, .ZR = 0, .PC = 0, .pstate = {false, true, false, false}};
 
 /*
     Load binary file
@@ -47,7 +57,7 @@ void binaryFileLoad(const char *inputFileName)
     FILE *inputFile = fopen(inputFileName, "rb");
     if (inputFile == NULL)
     {
-        fprintf(stderr, "Error: Can't open %s\n", inputFile);
+        fprintf(stderr, "Error: Can't open %s\n", inputFileName);
         exit(1);
     }
     fread(memory, sizeof(uint32_t), MEMORY_SIZE, inputFile);
@@ -67,7 +77,7 @@ void binaryFileLoad(const char *inputFileName)
 uint32_t fetch()
 {
     // Get bytes from address in little-endian style
-    uint32_t *bytes = (int32_t *)(memory + state.PC);
+    uint32_t *bytes = (uint32_t *)(memory + state.PC);
     return (bytes[3] << 24) |
            (bytes[2] << 16) |
            (bytes[1] << 8) |
@@ -83,8 +93,7 @@ void decode(uint32_t instruction)
     uint8_t op0 = extractBits(instruction, 25, 28);
 
     // 1.3 A64: The AArch64 Instruction Set
-    switch (op0)
-    {
+    switch (op0) {
     // 1.4 Data Processing (Immediate)
     case 8:
     case 9:
@@ -134,54 +143,69 @@ void executeDataProcessImmediate(uint32_t instruction)
         uint8_t rn = extractBits(instruction, 5, 9);
         if (sh == 1)
         {
-            imm12 == imm12 << 12;
+            imm12 = imm12 << 12;
         }
         switch (opc)
         {
         // add - add
         case 0:
-            state.R[rd] = imm12;
             if (rn != 31)
             {
-                state.R[rd] += state.R[rn];
+                state.R[rd] = state.R[rn] + imm12;
+            } 
+            else 
+            {
+                state.R[rd] = imm12;
             }
             break;
         // adds - add and set flags
         case 1:
-            state.R[rd] = imm12;
             if (rn != 31)
             {
-                state.R[rd] += state.R[rn];
+                state.R[rd] = state.R[rn] + imm12;
+            } 
+            else 
+            {
+                state.R[rd] = imm12;
             }
             state.pstate.N = state.R[rd] < 0;
             state.pstate.Z = state.R[rd] == 0;
-            state.pstate.C = TODO();
-            state.pstate.V = TODO();
+            //state.pstate.C = TODO();
+            //state.pstate.V = TODO();
             break;
         // sub - subtract
         case 2:
-            state.R[rd] = -imm12;
             if (rn != 31)
             {
-                state.R[rd] += state.R[rn];
+                state.R[rd] = state.R[rn] - imm12;
+            } 
+            else 
+            {
+                state.R[rd] = - imm12;
             }
             break;
         // subs - subtract and set flags
         case 3:
-            state.R[rd] = -imm12;
             if (rn != 31)
             {
-                state.R[rd] += state.R[rn];
+                state.R[rd] = state.R[rn] - imm12;
+            } 
+            else 
+            {
+                state.R[rd] = - imm12;
             }
             state.pstate.N = state.R[rd] < 0;
             state.pstate.Z = state.R[rd] == 0;
-            state.pstate.C = TODO();
-            state.pstate.V = TODO();
+            //state.pstate.C = TODO();
+            //state.pstate.V = TODO();
             break;
+        }
+        if(sf == 1) {
+            state.R[rd] = signExtend(state.R[rd]);
         }
         break;
     // Wide move instruction
-    case 5:
+    case 5: {
         uint8_t hw = extractBits(instruction, 21, 22);
         uint32_t imm16 = extractBits(instruction, 5, 20);
         switch (opc)
@@ -199,7 +223,7 @@ void executeDataProcessImmediate(uint32_t instruction)
             state.R[rd] = (state.R[rd] & ~(0xFFFF << (hw * 16))) | (imm16 << (hw * 16));
             break;
         }
-        break;
+        break; }
     }
     state.PC += 4;
 }
@@ -218,7 +242,7 @@ void executeDataProcessRegister(uint32_t instruction)
 
     switch (M)
     {
-    case 0:
+    case 0: {
         uint8_t shift = extractBits(instruction, 22, 23);
         int32_t op2 = (int32_t)state.R[rm];
         if (sf == 0)
@@ -229,13 +253,16 @@ void executeDataProcessRegister(uint32_t instruction)
             case 0:
                 // lsl (left shift)
                 op2 = op2 << operand;
+                break;
             case 1:
                 // lsr (right shift)
                 // Built in sr is asr, so need to cast to unsigned first
                 op2 = (int32_t)((uint32_t)op2 >> operand);
+                break;
             case 3:
                 // asr (arithmetic right shift)
                 op2 = op2 >> operand;
+                break;
             case 4:
                 // ror (only valid for logic instructions)
                 if (opr < 8)
@@ -243,6 +270,7 @@ void executeDataProcessRegister(uint32_t instruction)
                     int bitWidth = 32;
                     op2 = op2 >> operand | op2 << (bitWidth - operand);
                 }
+                break;
             }
             // clear least significant 32 bits
             state.R[rm] &= 0xFFFFFF;
@@ -251,18 +279,21 @@ void executeDataProcessRegister(uint32_t instruction)
         else if (sf == 1)
         {
             // 64 bit
-                        switch (shift)
+            switch (shift)
             {
             case 0:
                 // lsl (left shift)
                 op2 = op2 << operand;
+                break;
             case 1:
                 // lsr (right shift)
                 // Built in sr is asr, so need to cast to unsigned first
                 op2 = (int64_t)((uint64_t)op2 >> operand);
+                break;
             case 3:
                 // asr (arithmetic right shift)
                 op2 = op2 >> operand;
+                break;
             case 4:
                 // ror (only valid for logic instructions)
                 if (opr < 8)
@@ -270,12 +301,13 @@ void executeDataProcessRegister(uint32_t instruction)
                     int bitWidth = 64;
                     op2 = op2 >> operand | op2 << (bitWidth - operand);
                 }
+                break;
             }
 
             state.R[rm] = (int64_t)processDataRegisterHelper(instruction, rn, op2);
         }
 
-        break;
+        break; }
     case 1:
         // Multiply
         if (opr == 8)
@@ -333,11 +365,11 @@ int processDataRegisterHelper(int instruction, int op1, int op2)
             state.pstate.Z = result == 0;
             if (sf == 0) {
                 // 32 bit
-                state.pstate.C = TODO();
+                //state.pstate.C = TODO();
                 state.pstate.V = result > INT32_MAX;
             } else {
                 // 64 bit
-                state.pstate.C = TODO();
+                //state.pstate.C = TODO();
                 state.pstate.V = result > INT64_MAX;
             }
             break;
@@ -352,11 +384,11 @@ int processDataRegisterHelper(int instruction, int op1, int op2)
             state.pstate.Z = result == 0;
             if (sf == 0) {
                 // 32 bit
-                state.pstate.C = TODO();
+                //state.pstate.C = TODO();
                 state.pstate.V = result < INT64_MIN;
             } else {
                 // 64 bit
-                state.pstate.C = TODO();
+                //state.pstate.C = TODO();
                 state.pstate.V = result < INT64_MIN;
             }
             break;
@@ -412,7 +444,8 @@ int processDataRegisterHelper(int instruction, int op1, int op2)
             state.pstate.Z = result == 0;
             state.pstate.C = 0;
             state.pstate.V = 0;
-            break;        }
+            break;        
+            }
         }
     }
     return result;
@@ -423,14 +456,17 @@ void executeLoadsAndStores(uint32_t instruction)
 {
     bool sf = extractBits(instruction, 30, 30);
     uint8_t rt = extractBits(instruction, 0, 4);
+    int valueByte;
+    uintptr_t ta;
 
     // Check size
-    switch (sf)
+    if (sf == 0)
     {
-    case 0:
-        int valueByte = 4; // Size 32 bits
-    case 1:
-        int valueByte = 8; // Size 64 bits
+        valueByte = 4; // Size 32 bits
+    }
+    else
+    {
+        valueByte = 8; // Size 64 bits
     }
 
     // Single Data Transfer
@@ -444,58 +480,60 @@ void executeLoadsAndStores(uint32_t instruction)
         // Unsigned Immediate Offset
         if (U == 1)
         {
-            uintptr_t ta = state.R[xn] + ((uint64_t) offset) * valueByte;
+            ta = state.R[xn] + ((uint64_t)offset) * valueByte;
         }
-
-        else 
+        else
         {
             switch (extractBits(offset, 0, 1))
             {
             // Pre-Indexed
             case 3:
                 // Target Address
-                uintptr_t ta = state.R[xn] + extractBits(offset, 2, 9) - (extractBits(offset, 10, 10) * 256);
+                ta = state.R[xn] + extractBits(offset, 2, 9) - (extractBits(offset, 10, 10) * 256);
 
                 // Update Xn
                 state.R[xn] = ta;
-
+                break;
 
             // Post-Indexed
             case 1:
                 // Target Address
-                uintptr_t ta = state.R[xn];
+                ta = state.R[xn];
 
                 // Update Xn
                 state.R[xn] = ta + extractBits(offset, 2, 9) - (extractBits(offset, 10, 10) * 256);
+                break;
 
             // Register Offset
             case 2:
-                uint8_t xm = extractBits(offset, 6, 10); //Xm
+            {
+                uint8_t xm = extractBits(offset, 6, 10); // Xm
 
                 // Target Address
-                uintptr_t ta = state.R[xn] + state.R[xm];
+                ta = state.R[xn] + state.R[xm];
+                break;
+            }
             }
         }
-
-        switch (L)
-        {
         // Load Operation
-        case 0:
+        if (L == 0)
+        {
             int64_t newValue = 0; // Initialise the loading value
-            
-            for( int i = 0; i < valueByte; i++ )
+
+            for (int i = 0; i < valueByte; i++)
             {
-                newValue += (*(ta + i)) << ( i * 8);
+                newValue += ((int64_t)(*((uint8_t *)ta + i))) << (i * 8);
             }
             // Load to Target Register
             state.R[rt] = newValue;
-
+        }
         // Store Operation
-        case 1:
-            for( int i = 0; i < valueByte; i++ )
+        else
+        {
+            for (int i = 0; i < valueByte; i++)
             {
                 // Store from Register to Target Address
-                *(ta + i) = extractBits(state.R[rt], (i * 8), ((i + 1) * 8 - 1));
+                *((uint8_t *)(ta) + i) = (uint8_t)extractBits(state.R[rt], (i * 8), ((i + 1) * 8 - 1));
             }
         }
     }
@@ -504,15 +542,16 @@ void executeLoadsAndStores(uint32_t instruction)
     if (extractBits(instruction, 24, 29) == 0x18 && extractBits(instruction, 31, 31) == 0)
     {
         int32_t simm19 = extractBits(instruction, 5, 23);
-        uintptr_t ta = state.PC + (signExtend(simm19) * 4);
+        ta = state.PC + (signExtend(simm19) * 4);
         int64_t newValue = 0; // Initialise the loading value
-            
-            for( int i = 0; i < valueByte; i++ )
-            {
-                newValue += (*(ta + i)) << ( i * 8);
-            }
-            // Load to Target Register
-            state.R[rt] = newValue;
+
+        for (int i = 0; i < valueByte; i++)
+        {
+            // newValue += (*(ta + i)) << (i * 8);
+            newValue += ((int64_t)memory[ta + i]) << (i * 8);
+        }
+        // Load to Target Register
+        state.R[rt] = newValue;
     }
 
     state.PC += 4;
@@ -630,16 +669,21 @@ void printState(const char *outputFileName)
         exit(0);
     }
     FILE *outputDest = outputFileName ? fopen(outputFileName, "wb") : stdout;
+    if (outputDest == NULL)
+    {
+        fprintf(stderr, "Error: Can't open %s\n", outputFileName);
+        exit(1);
+    }
 
     // Print - General purpose registers
     fprintf(outputDest, "Registers:\n");
     for (int i = 0; i < 31; i++)
     {
-        fprintf(outputDest, "X%02d = %016lX\n", i, state.R[i]);
+        fprintf(outputDest, "X%02d = %016lx\n", i, state.R[i]);
     }
 
     // Print - Program Counter (PC)
-    fprintf(outputDest, "PC = %016lX\n", state.PC);
+    fprintf(outputDest, "PC = %016lx\n", state.PC);
 
     // Print - Processor State (PSTATE)
     fprintf(outputDest, "PSTATE : ");
@@ -652,10 +696,10 @@ void printState(const char *outputFileName)
     fprintf(outputDest, "Non-zero memory:\n");
     for (int i = 0; i < MEMORY_SIZE; i += 4)
     {
-        uint32_t value = *((uint32_t *)&memory[i]);
+        uint32_t value = *((uint32_t *)(memory + i));
         if (value != 0)
         {
-            fprintf(outputDest, "0x%08X: 0x%08X\n", i, value);
+            fprintf(outputDest, "0x%08x: %08x\n", i, value);
         }
     }
 
@@ -670,7 +714,7 @@ void printState(const char *outputFileName)
 /*
     Main function
 */
-int main(int argc, char *argv[])
+int main(int argc, char **argv)
 {
     /*
         1 The Emulator
