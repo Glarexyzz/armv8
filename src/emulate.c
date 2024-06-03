@@ -6,7 +6,7 @@
 
 // Define constants for memory, halt instruction
 #define MEMORY_SIZE (2 * 1024 * 1024) // 2MB of memory
-#define ZERO_REGISTER_ENCODING 31 // 11111
+#define ZERO_REGISTER_ENCODING 31     // 11111
 #define HALT_INSTRUCTION 0x8a000000   // Halt instruction
 
 // Prototypes for functions
@@ -93,7 +93,8 @@ void decode(uint32_t instruction)
     uint8_t op0 = extractBits(instruction, 25, 28);
 
     // 1.3 A64: The AArch64 Instruction Set
-    switch (op0) {
+    switch (op0)
+    {
     // 1.4 Data Processing (Immediate)
     case 8:
     case 9:
@@ -145,67 +146,113 @@ void executeDataProcessImmediate(uint32_t instruction)
         {
             imm12 = imm12 << 12;
         }
-        switch (opc)
+
+        if (sf == 0)
         {
-        // add - add
-        case 0:
-            if (rn != 31)
+            int32_t result;
+            switch (opc)
             {
-                state.R[rd] = state.R[rn] + imm12;
-            } 
-            else 
-            {
-                state.R[rd] = imm12;
+            case 0:
+                // add - add
+                if (rn != 31)
+                {
+                    result = add32(state.R[rn], imm12, false);
+                }
+                else
+                {
+                    result = imm12;
+                }
+            case 1:
+                // adds - add and set flags
+                if (rn != 31)
+                {
+                    result = add32(state.R[rn], imm12, true);
+                }
+                else
+                {
+                    result = add32(0, imm12, true);
+                }
+                break;
+            // sub - subtract
+            case 2:
+                if (rn != 31)
+                {
+                    result = sub32(state.R[rn], imm12, false);
+                }
+                else
+                {
+                    result = -imm12;
+                }
+                break;
+            // subs - subtract and set flags
+            case 3:
+                if (rn != 31)
+                {
+                    result = sub32(state.R[rn], imm12, true);
+                }
+                else
+                {
+                    result = sub32(imm12, 0, true);
+                }
+                break;
             }
-            break;
-        // adds - add and set flags
-        case 1:
-            if (rn != 31)
-            {
-                state.R[rd] = state.R[rn] + imm12;
-            } 
-            else 
-            {
-                state.R[rd] = imm12;
-            }
-            state.pstate.N = state.R[rd] < 0;
-            state.pstate.Z = state.R[rd] == 0;
-            //state.pstate.C = TODO();
-            //state.pstate.V = TODO();
-            break;
-        // sub - subtract
-        case 2:
-            if (rn != 31)
-            {
-                state.R[rd] = state.R[rn] - imm12;
-            } 
-            else 
-            {
-                state.R[rd] = - imm12;
-            }
-            break;
-        // subs - subtract and set flags
-        case 3:
-            if (rn != 31)
-            {
-                state.R[rd] = state.R[rn] - imm12;
-            } 
-            else 
-            {
-                state.R[rd] = - imm12;
-            }
-            state.pstate.N = state.R[rd] < 0;
-            state.pstate.Z = state.R[rd] == 0;
-            //state.pstate.C = TODO();
-            //state.pstate.V = TODO();
-            break;
+            // clear least significant 32 bits
+            state.R[rd] &= 0xFFFFFF;
+            state.R[rd] = state.R[rn] | (int64_t)result;
         }
-        if(sf == 1) {
-            state.R[rd] = signExtend(state.R[rd]);
+        else
+        {
+            switch (opc)
+            {
+            case 0:
+                // add - add
+                if (rn != 31)
+                {
+                    state.R[rd] = add64(state.R[rn], imm12, false);
+                }
+                else
+                {
+                    state.R[rd] = imm12;
+                }
+            case 1:
+                // adds - add and set flags
+                if (rn != 31)
+                {
+                    state.R[rd] = add64(state.R[rn], imm12, true);
+                }
+                else
+                {
+                    state.R[rd] = add64(0, imm12, true);
+                }
+                break;
+            // sub - subtract
+            case 2:
+                if (rn != 31)
+                {
+                    state.R[rd] = sub64(state.R[rn], imm12, false);
+                }
+                else
+                {
+                    state.R[rd] = -imm12;
+                }
+                break;
+            // subs - subtract and set flags
+            case 3:
+                if (rn != 31)
+                {
+                    state.R[rd] = sub64(state.R[rn], imm12, true);
+                }
+                else
+                {
+                    state.R[rd] = sub64(imm12, 0, true);
+                }
+                break;
+            }
         }
         break;
     // Wide move instruction
-    case 5: {
+    case 5:
+    {
         uint8_t hw = extractBits(instruction, 21, 22);
         uint32_t imm16 = extractBits(instruction, 5, 20);
         switch (opc)
@@ -223,7 +270,8 @@ void executeDataProcessImmediate(uint32_t instruction)
             state.R[rd] = (state.R[rd] & ~(0xFFFF << (hw * 16))) | (imm16 << (hw * 16));
             break;
         }
-        break; }
+        break;
+    }
     }
     state.PC += 4;
 }
@@ -242,7 +290,8 @@ void executeDataProcessRegister(uint32_t instruction)
 
     switch (M)
     {
-    case 0: {
+    case 0:
+    {
         uint8_t shift = extractBits(instruction, 22, 23);
         int32_t op2 = (int32_t)state.R[rm];
         if (sf == 0)
@@ -256,8 +305,7 @@ void executeDataProcessRegister(uint32_t instruction)
                 break;
             case 1:
                 // lsr (right shift)
-                // Built in sr is asr, so need to cast to unsigned first
-                op2 = (int32_t)((uint32_t)op2 >> operand);
+                op2 = op2 >> operand;
                 break;
             case 3:
                 // asr (arithmetic right shift)
@@ -287,8 +335,7 @@ void executeDataProcessRegister(uint32_t instruction)
                 break;
             case 1:
                 // lsr (right shift)
-                // Built in sr is asr, so need to cast to unsigned first
-                op2 = (int64_t)((uint64_t)op2 >> operand);
+                op2 = op2 >> operand;
                 break;
             case 3:
                 // asr (arithmetic right shift)
@@ -307,7 +354,8 @@ void executeDataProcessRegister(uint32_t instruction)
             state.R[rm] = (int64_t)processDataRegisterHelper(instruction, rn, op2);
         }
 
-        break; }
+        break;
+    }
     case 1:
         // Multiply
         if (opr == 8)
@@ -342,6 +390,97 @@ void executeDataProcessRegister(uint32_t instruction)
 
     state.PC += 4;
 }
+// Helper functions for add and sub
+// FLAG DEFS
+// C - result not mathematically correct when interpreted as unsigned
+// V - result not mathematically correct when interpreted as signed
+
+int32_t add32(int32_t int1, int32_t int2, bool setFlags)
+{
+    int32_t output;
+    if (int1 > 0 && int2 > INT32_MAX - int1)
+    {
+        // Handle overflow
+        output = -2 - abs(int1 - int2);
+    }
+    else
+    {
+        output = int1 + int2;
+    }
+    if (setFlags)
+    {
+        state.pstate.N = output < 0;
+        state.pstate.Z = output == 0;
+        state.pstate.C = (uint32_t)int1 > UINT32_MAX - (uint32_t)int2;
+        state.pstate.V = int1 > 0 && int2 > INT32_MAX - int1;
+    }
+    return output;
+}
+
+int32_t sub32(int32_t int1, int32_t int2, bool setFlags)
+{
+    int32_t output;
+    if (int1 < 0 && int2 > 0 && -int2 < INT32_MIN - int1)
+    {
+        // Handle underflow
+        output = -(int1 + int2);
+    }
+    else
+    {
+        output = int1 - int2;
+    }
+    if (setFlags)
+    {
+        state.pstate.N = output < 0;
+        state.pstate.Z = output == 0;
+        state.pstate.C = (uint32_t)int1 < (uint32_t)int2;
+        state.pstate.V = int1 < 0 && int2 > 0 && -int2 < INT32_MIN - int1;
+    }
+    return output;
+}
+int64_t add64(int64_t int1, int64_t int2, bool setFlags)
+{
+    int64_t output;
+    if (int1 > 0 && int2 > INT64_MAX - int1)
+    {
+        // Handle overflow
+        output = -2 - abs(int1 - int2);
+    }
+    else
+    {
+        output = int1 + int2;
+    }
+    if (setFlags)
+    {
+        state.pstate.N = output < 0;
+        state.pstate.Z = output == 0;
+        state.pstate.C = (uint64_t)int1 > UINT64_MAX - (uint64_t)int2;
+        state.pstate.V = int1 > 0 && int2 > INT64_MAX - int1;
+    }
+    return output;
+}
+
+int64_t sub64(int64_t int1, int64_t int2, bool setFlags)
+{
+    int64_t output;
+    if (int1 < 0 && int2 > 0 && -int2 < INT64_MIN - int1)
+    {
+        // Handle underflow
+        output = -(int1 + int2);
+    }
+    else
+    {
+        output = int1 - int2;
+    }
+    if (setFlags)
+    {
+        state.pstate.N = output < 0;
+        state.pstate.Z = output == 0;
+        state.pstate.C = (uint64_t)int1 < (uint64_t)int2;
+        state.pstate.V = int1 < 0 && int2 > 0 && -int2 < INT64_MIN - int1;
+    }
+    return output;
+}
 
 int processDataRegisterHelper(int instruction, int op1, int op2)
 {
@@ -352,99 +491,99 @@ int processDataRegisterHelper(int instruction, int op1, int op2)
     // Arithmetic
     if (opr >= 8 && opr % 2 == 0)
     {
-        switch (opc)
+        if (sf == 0)
         {
-        case 0:
-            // add
-            result = op1 + op2;
-            break;
-        case 1:
-            // adds
-            result = op1 + op2;
-            state.pstate.N = result < 0;
-            state.pstate.Z = result == 0;
-            if (sf == 0) {
-                // 32 bit
-                //state.pstate.C = TODO();
-                state.pstate.V = result > INT32_MAX;
-            } else {
-                // 64 bit
-                //state.pstate.C = TODO();
-                state.pstate.V = result > INT64_MAX;
+            // 32 bit
+            switch (opc)
+            {
+            case 0:
+                // add
+                result = add32(op1, op2, false);
+            case 1:
+                // adds
+                result = add32(op1, op2, true);
+            case 2:
+                // sub
+                result = sub32(op1, op2, false);
+            case 3:
+                // subs
+                result = sub32(op1, op2, true);
             }
-            break;
-        case 2:
-            // sub
-            result = op1 - op2;
-            break;
-        case 3:
-            // subs
-            result = op1 - op2;
-            state.pstate.N = result < 0;
-            state.pstate.Z = result == 0;
-            if (sf == 0) {
-                // 32 bit
-                //state.pstate.C = TODO();
-                state.pstate.V = result < INT64_MIN;
-            } else {
-                // 64 bit
-                //state.pstate.C = TODO();
-                state.pstate.V = result < INT64_MIN;
+        }
+        else
+        {
+            // 64 bit
+            switch (opc)
+            {
+            case 0:
+                // add
+                result = add64(op1, op2, false);
+            case 1:
+                // adds
+                result = add64(op1, op2, true);
+            case 2:
+                // sub
+                result = add64(op1, op2, false);
+            case 3:
+                // subs
+                result = add64(op1, op2, true);
             }
-            break;
         }
     }
     // Bit-logic
     else if (opr < 8)
     {
         bool N = extractBits(instruction, 21, 21);
-        if (N == 0) {
-        switch (opc)
+        if (N == 0)
         {
-        case 0:
-            // bitwise and
-            result = op1 & op2;
-            break;
-        case 1:
-            // bitwise inclusive or
-            result = op1 | op2;
-            break;
-        case 2:
-            // bitwise exclusive or
-            result = op1 ^ op2;
-            break;
-        case 3:
-            // bitwise and set flags
-            result = op1 & op2;
-            state.pstate.N = result < 0;
-            state.pstate.Z = result == 0;
-            state.pstate.C = 0;
-            state.pstate.V = 0;
-            break;
+            switch (opc)
+            {
+            case 0:
+                // bitwise and
+                result = op1 & op2;
+                break;
+            case 1:
+                // bitwise inclusive or
+                result = op1 | op2;
+                break;
+            case 2:
+                // bitwise exclusive or
+                result = op1 ^ op2;
+                break;
+            case 3:
+                // bitwise and set flags
+                result = op1 & op2;
+                state.pstate.N = result < 0;
+                state.pstate.Z = result == 0;
+                state.pstate.C = 0;
+                state.pstate.V = 0;
+                break;
+            }
         }
-        } else if (N == 1) {
-        switch (opc)
+        else if (N == 1)
         {
-        case 0:
-            // bitwise and
-            result = op1 & ~op2;
-            break;
-        case 1:
-            // bitwise inclusive or
-            result = op1 | ~op2;
-            break;
-        case 2:
-            // bitwise exclusive or
-            result = op1 ^ ~op2;
-            break;
-        case 3:
-            // bitwise and set flags
-            result = op1 & ~op2;
-            state.pstate.N = result < 0;
-            state.pstate.Z = result == 0;
-            state.pstate.C = 0;
-            state.pstate.V = 0;
-            break;        
+            switch (opc)
+            {
+            case 0:
+                // bitwise and
+                result = op1 & ~op2;
+                break;
+            case 1:
+                // bitwise inclusive or
+                result = op1 | ~op2;
+                break;
+            case 2:
+                // bitwise exclusive or
+                result = op1 ^ ~op2;
+                break;
+            case 3:
+                // bitwise and set flags
+                result = op1 & ~op2;
+                state.pstate.N = result < 0;
+                state.pstate.Z = result == 0;
+                state.pstate.C = 0;
+                state.pstate.V = 0;
+                break;
             }
         }
     }
