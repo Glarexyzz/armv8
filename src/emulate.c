@@ -128,6 +128,99 @@ void decode(uint32_t instruction)
       - Branch Instructions (Unconditional & Register & Conditional)
 */
 
+// Helper functions for add and sub
+// FLAG DEFS
+// C - result not mathematically correct when interpreted as unsigned
+// V - result not mathematically correct when interpreted as signed
+
+int32_t add32(int32_t int1, int32_t int2, bool setFlags)
+{
+    int32_t output;
+    if (int1 > 0 && int2 > INT32_MAX - int1)
+    {
+        // Handle overflow
+        output = -2 - abs(int1 - int2);
+    }
+    else
+    {
+        output = int1 + int2;
+    }
+    if (setFlags)
+    {
+        state.pstate.N = output < 0;
+        state.pstate.Z = output == 0;
+        state.pstate.C = (uint32_t)int1 > UINT32_MAX - (uint32_t)int2;
+        state.pstate.V = int1 > 0 && int2 > INT32_MAX - int1;
+    }
+    return output;
+}
+
+int32_t sub32(int32_t int1, int32_t int2, bool setFlags)
+{
+    int32_t output;
+    if (int1 < 0 && int2 > 0 && -int2 < INT32_MIN - int1)
+    {
+        // Handle underflow
+        output = -(int1 + int2);
+    }
+    else
+    {
+        output = int1 - int2;
+    }
+    if (setFlags)
+    {
+        state.pstate.N = output < 0;
+        state.pstate.Z = output == 0;
+        state.pstate.C = (uint32_t)int1 < (uint32_t)int2;
+        state.pstate.V = int1 < 0 && int2 > 0 && -int2 < INT32_MIN - int1;
+    }
+    return output;
+}
+
+int64_t add64(int64_t int1, int64_t int2, bool setFlags)
+{
+    int64_t output;
+    if (int1 > 0 && int2 > INT64_MAX - int1)
+    {
+        // Handle overflow
+        output = -2 - abs(int1 - int2);
+    }
+    else
+    {
+        output = int1 + int2;
+    }
+    if (setFlags)
+    {
+        state.pstate.N = output < 0;
+        state.pstate.Z = output == 0;
+        state.pstate.C = (uint64_t)int1 > UINT64_MAX - (uint64_t)int2;
+        state.pstate.V = int1 > 0 && int2 > INT64_MAX - int1;
+    }
+    return output;
+}
+
+int64_t sub64(int64_t int1, int64_t int2, bool setFlags)
+{
+    int64_t output;
+    if (int1 < 0 && int2 > 0 && -int2 < INT64_MIN - int1)
+    {
+        // Handle underflow
+        output = -(int1 + int2);
+    }
+    else
+    {
+        output = int1 - int2;
+    }
+    if (setFlags)
+    {
+        state.pstate.N = output < 0;
+        state.pstate.Z = output == 0;
+        state.pstate.C = (uint64_t)int1 < (uint64_t)int2;
+        state.pstate.V = int1 < 0 && int2 > 0 && -int2 < INT64_MIN - int1;
+    }
+    return output;
+}
+
 // 1.4 Data Processing Instruction (Immediate)
 void executeDataProcessImmediate(uint32_t instruction)
 {
@@ -389,97 +482,6 @@ void executeDataProcessRegister(uint32_t instruction)
     }
 
     state.PC += 4;
-}
-// Helper functions for add and sub
-// FLAG DEFS
-// C - result not mathematically correct when interpreted as unsigned
-// V - result not mathematically correct when interpreted as signed
-
-int32_t add32(int32_t int1, int32_t int2, bool setFlags)
-{
-    int32_t output;
-    if (int1 > 0 && int2 > INT32_MAX - int1)
-    {
-        // Handle overflow
-        output = -2 - abs(int1 - int2);
-    }
-    else
-    {
-        output = int1 + int2;
-    }
-    if (setFlags)
-    {
-        state.pstate.N = output < 0;
-        state.pstate.Z = output == 0;
-        state.pstate.C = (uint32_t)int1 > UINT32_MAX - (uint32_t)int2;
-        state.pstate.V = int1 > 0 && int2 > INT32_MAX - int1;
-    }
-    return output;
-}
-
-int32_t sub32(int32_t int1, int32_t int2, bool setFlags)
-{
-    int32_t output;
-    if (int1 < 0 && int2 > 0 && -int2 < INT32_MIN - int1)
-    {
-        // Handle underflow
-        output = -(int1 + int2);
-    }
-    else
-    {
-        output = int1 - int2;
-    }
-    if (setFlags)
-    {
-        state.pstate.N = output < 0;
-        state.pstate.Z = output == 0;
-        state.pstate.C = (uint32_t)int1 < (uint32_t)int2;
-        state.pstate.V = int1 < 0 && int2 > 0 && -int2 < INT32_MIN - int1;
-    }
-    return output;
-}
-int64_t add64(int64_t int1, int64_t int2, bool setFlags)
-{
-    int64_t output;
-    if (int1 > 0 && int2 > INT64_MAX - int1)
-    {
-        // Handle overflow
-        output = -2 - abs(int1 - int2);
-    }
-    else
-    {
-        output = int1 + int2;
-    }
-    if (setFlags)
-    {
-        state.pstate.N = output < 0;
-        state.pstate.Z = output == 0;
-        state.pstate.C = (uint64_t)int1 > UINT64_MAX - (uint64_t)int2;
-        state.pstate.V = int1 > 0 && int2 > INT64_MAX - int1;
-    }
-    return output;
-}
-
-int64_t sub64(int64_t int1, int64_t int2, bool setFlags)
-{
-    int64_t output;
-    if (int1 < 0 && int2 > 0 && -int2 < INT64_MIN - int1)
-    {
-        // Handle underflow
-        output = -(int1 + int2);
-    }
-    else
-    {
-        output = int1 - int2;
-    }
-    if (setFlags)
-    {
-        state.pstate.N = output < 0;
-        state.pstate.Z = output == 0;
-        state.pstate.C = (uint64_t)int1 < (uint64_t)int2;
-        state.pstate.V = int1 < 0 && int2 > 0 && -int2 < INT64_MIN - int1;
-    }
-    return output;
 }
 
 int processDataRegisterHelper(int instruction, int op1, int op2)
