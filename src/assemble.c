@@ -4,7 +4,7 @@
 #include <assert.h>
 #include <stdbool.h>
 #include <ctype.h>
-#include <unistd.h>
+// #include <unistd.h>
 
 #define MAXLINELEN 1024
 
@@ -136,11 +136,30 @@ bool build_symtab(char *line, int lineno, FILE *_) {
   return false;
 }
 
+//returns an array of strings
+char** parseInstruction(char *line) {
+  //use strtok to tokenise and then maybe realloc?
+  TODO();
+}
+
 bool process_line(char *line, int lineno, FILE *outputFile) {
   // Check if line is a label
   if (line[strlen(line)-1] == ':') {
-    // Remove colon
     return true;
+  // Check if line is a directive
+  } else if (line[0] == '.') {
+
+  // Otherwise line is instruction
+  } else {
+    char** parsedIns = parseInstruction(line);
+    char* opc = parsedIns[0];
+
+    if (opc == "add") {
+
+    } else if (opc == "adds") {
+
+    }
+    //etc
   }
   fprintf(outputFile, "%d: %s", lineno, line);
   return false;
