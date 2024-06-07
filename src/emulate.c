@@ -591,7 +591,7 @@ int main(int argc, char **argv)
     if (argc < 2)
     {
         fprintf(stderr, "Usage: %s <file_in> [file_out]\n", argv[0]);
-        exit(EXIT_FAILURE);
+        exit(1);
     }
     // Define input and output files
     const char *inputFileName = argv[1];
