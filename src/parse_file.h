@@ -12,13 +12,13 @@
 #include <ctype.h>
 #include <stdint.h>
 #include <unistd.h>
+#include "globals.h"
 
-
-typedef bool (*line_processor)(char *line, int lineno, FILE *outputFile);
+typedef bool (*line_processor)(context file_context, FILE *outputFile);
 
 
 // Prototypes
-void parse_file(FILE *inputFile, line_processor processor, FILE *outputFile);
-uint32_t parseInstruction(char *line);
-bool process_line(char *line, int lineno, FILE *outputFile);
+void parse_file(FILE *inputFile, line_processor processor, FILE *outputFile, context file_context);
+uint32_t parseInstruction(context file_context);
+bool process_line(context file_context, FILE *outputFile);
 #endif //PARSE_FILE_H

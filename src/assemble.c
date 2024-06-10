@@ -10,7 +10,6 @@
 #include "globals.h"
 #include "sym_tab.h"
 #include "process_instr.h"
-#include "opc_table.h"
 #include "parse_file.h"
 
 int main(int argc, char **argv) {
@@ -37,19 +36,19 @@ int main(int argc, char **argv) {
   }
 
   // Should make outputFile optional
-  parse_file(inputFile, build_symtab, outputFile);
-  fseek(inputFile, 0, SEEK_SET); CUR_LINENO = 0;
-  parse_file(inputFile, process_line, outputFile);
+  context file_context = create_context();
+  parse_file(inputFile, build_symtab, outputFile, file_context);
+  fseek(inputFile, 0, SEEK_SET);
+  reset_linenos(file_context);
+  parse_file(inputFile, process_line, outputFile, file_context);
 
   fclose(inputFile);
 
-  if( NERRORS == 0 )		// no errors? output the file
+  if( file_context->nerrors == 0 )		// no errors? output the file
 	{
-//        fputs( "\n",  outputFile);
-//        show_symtab(outputFile);
         return EXIT_SUCCESS;
 	}
-  fprintf( stderr, "%d errors\n", NERRORS );
+  fprintf( stderr, "%d errors\n", file_context->nerrors );
   unlink(outputFileName);
   return EXIT_FAILURE;
 }

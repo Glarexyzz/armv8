@@ -10,8 +10,6 @@
 #include <string.h>
 #include <stdint.h>
 
-#include "opc_table.h"
-
 typedef uint32_t (*instr_processor)(char *opc, char * rest_instr);
 
 uint32_t arithmetic_instr(char *opc, char * rest_instr);

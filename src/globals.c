@@ -3,22 +3,16 @@
 //
 #include <stdio.h>
 #include <ctype.h>
+#include <stdlib.h>
 #include <stdbool.h>
+#include <assert.h>
 #include "globals.h"
 
-int NERRORS = 0; // number of assembly time errors (Global)
-int CUR_LINENO = 0;
-char CUR_LINE[MAXLINELEN] = "";
 //	Produce a standard-formatted error
-//
-void error_glob_vals(char *msg){
-    fprintf( stderr, "Line %d: %s\n\t\t%s\n", CUR_LINENO, CUR_LINE, msg );
-    NERRORS++;
-}
-void error( char *line, int lineno, char *msg )
+void error( char *msg, context context )
 {
-    fprintf( stderr, "Line %d: %s\n\t\t%s\n", lineno, line, msg );
-    NERRORS++;
+    fprintf( stderr, "Line %d: %s\n\t\t%s\n", context->file_lineno, context->cur_line, msg );
+    context->nerrors++;
 }
 
 // May become own utils package later...
@@ -30,4 +24,17 @@ bool isalpha_str(const char *str) {
         str++;
     }
     return true; // Return 1 (true) if all characters are alphabetic
+}
+//Default values - nerrors = 0, file_lineno = prog_lineno = 1
+context create_context(void){
+    context new = malloc(sizeof(struct context));
+    assert(new != NULL);
+    new->nerrors = 0; new->file_lineno = new->prog_lineno = 1;
+    return new;
+}
+void reset_linenos(context context){
+    context->file_lineno = 0; context->prog_lineno = 0;
+}
+void free_context(context context){
+    free(context);
 }

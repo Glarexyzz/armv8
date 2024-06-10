@@ -74,23 +74,21 @@ void show_symtab( FILE *out )
 
 // Return true if line is a label (so line should be skipped), false otherwise
 // Logs an error if a label is duplicated, label is not only a-zA-Z
-bool build_symtab(char *line, int lineno, FILE *_) {
+bool build_symtab(context file_context, FILE *_) {
     // Check if line is a label
-    if (line[strlen(line)-1] == ':') {
+    if (file_context->cur_line[strlen(file_context->cur_line)-1] == ':') {
         // Remove colon
-        line[strlen(line)-1] = '\0';
-        if (get_sym(line) != -1) {
-            error(line, lineno, "Error: Duplicate label");
-            nerrors++;
+        file_context->cur_line[strlen(file_context->cur_line)-1] = '\0';
+        if (get_sym(file_context->cur_line) != -1) {
+            error("Error: Duplicate label", file_context);
             return true;
         }
-        if (!isalpha_str(line)){
-            error(line, lineno, "Error: Label must only contain a-zA-Z");
-            nerrors++;
+        if (!isalpha_str(file_context->cur_line)){
+            error("Error: Label must only contain a-zA-Z", file_context);
             return true;
         }
         // Add symbol to symbol table
-        add_sym(line, lineno);
+        add_sym(file_context->cur_line, file_context->prog_lineno);
         return true;
     }
     return false;

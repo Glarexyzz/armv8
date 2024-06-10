@@ -5,12 +5,23 @@
 #ifndef ARMV8_2_GLOBALS_H
 #define ARMV8_2_GLOBALS_H
 
+#include <stdbool.h>
+
 #define MAXLINELEN 1024
-extern int NERRORS;
-extern char CUR_LINE[MAXLINELEN];
-extern int CUR_LINENO; // Line number with labels as well (for debugging only!!)
-void error( char *line, int lineno, char *msg );
-void error_glob_vals(char *msg);
+
+
+struct context {
+    int nerrors;
+    char cur_line[MAXLINELEN];
+    int prog_lineno; // Only program instructions
+    int file_lineno; // Includes labels, new lines and comments
+};
+typedef struct context *context;
+//extern context GLOBAL_CONTEXT; - decided to define in assemble
+context create_context(void);
+void reset_linenos(context context);
+void free_context(context context);
+void error( char *msg, context context );
 bool isalpha_str(const char *str);
 
 #endif //ARMV8_2_GLOBALS_H
