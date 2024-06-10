@@ -9,10 +9,22 @@
 #include <ctype.h>
 
 #include "sym_tab.h"
-#include "assemble.h"
+#include "globals.h"
 
+// Symbol table:
 
+#define MAXSYMBOLLEN 64
+typedef char symbol[MAXSYMBOLLEN];
 
+typedef struct {
+    symbol s; //Up to 64 characters
+    unsigned v;
+} symval;
+
+#define MAXSYMBOLS 1024
+
+symval symtab[MAXSYMBOLS];
+int nsymbols = 0;
 
 //
 // int v = get_sym( char *s );

@@ -13,12 +13,12 @@
 #include <stdint.h>
 #include <unistd.h>
 
-#define MAXLINELEN 1024
 
 typedef bool (*line_processor)(char *line, int lineno, FILE *outputFile);
 
 
 // Prototypes
 void parse_file(FILE *inputFile, line_processor processor, FILE *outputFile);
+uint32_t parseInstruction(char *line);
 bool process_line(char *line, int lineno, FILE *outputFile);
 #endif //PARSE_FILE_H

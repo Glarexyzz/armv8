@@ -67,6 +67,8 @@ void free_opc_table(opc_row *opc_table, int num_types) {
     }
 }
 
+
+
 int main(void) {
     opc_table_gen(opc_table, &num_opc_types);
 

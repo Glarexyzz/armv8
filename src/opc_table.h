@@ -26,4 +26,5 @@ typedef struct {
     int num_opcs; // Number of opcodes
     uint32_t (*process_opc)(struct instruction);
 } opc_row;
+
 #endif //OPC_TABLE_H
