@@ -1,0 +1,2 @@
+BUILD = assemble emulate
+CFLAGS = -g

@@ -7,20 +7,19 @@
 
 void parse_file(FILE *inputFile, line_processor processor, FILE *outputFile, context file_context) {
     // Read input file line by line
-    assert(file_context->prog_lineno == 1);
-    for ( ; fgets( file_context->cur_line, MAXLINELEN, inputFile ) != NULL; file_context->prog_lineno++ )
+    file_context->prog_lineno = file_context->file_lineno = 1;
+    for ( ; fgets( file_context->cur_line, MAXLINELEN, inputFile ) != NULL; file_context->prog_lineno++, file_context->file_lineno++)
     {
         // Remove newline character
         int len = strlen(file_context->cur_line);
         if( file_context->cur_line[len-1] == '\n' )
         {
             file_context->cur_line[len-1] = '\0';
-        } else {
-            fprintf( stderr, "Line %d too long\n", file_context->prog_lineno );
-            exit( EXIT_FAILURE );
+        } else if (len == MAXLINELEN-1) {
+//          Have to check as last line may not have \n
+            error("Max buffer reached, line is too long, skipping line!", file_context);
+            continue;
         }
-        // Always increment file line number as includes labels as well
-        file_context->file_lineno++;
         // Skip empty lines and comments and build_symbol table if label then skip line for continue
         if (file_context->cur_line[0] == '#' || file_context->cur_line[0] == '\0' || processor(file_context, outputFile)) {
             file_context->prog_lineno--; // Ignore blank lines
@@ -40,7 +39,7 @@ uint32_t parseInstruction(context file_context) {
     rest_instr = strtok_r(NULL, "", &saveptr);
     rest_instr = (rest_instr == NULL) ? "" : rest_instr;
 
-    return opc_fun(opc_str, rest_instr);
+    return opc_fun(opc_str, rest_instr, file_context);
 }
 
 bool process_line(context file_context, FILE *outputFile) {

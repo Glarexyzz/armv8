@@ -33,7 +33,7 @@ context create_context(void){
     return new;
 }
 void reset_linenos(context context){
-    context->file_lineno = 0; context->prog_lineno = 0;
+    context->file_lineno = 1; context->prog_lineno = 1;
 }
 void free_context(context context){
     free(context);

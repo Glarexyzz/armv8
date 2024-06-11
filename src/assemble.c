@@ -12,6 +12,7 @@
 #include "process_instr.h"
 #include "parse_file.h"
 
+#define PRINTONFAIL(c) {}
 int main(int argc, char **argv) {
   if (argc != 3){
     fprintf(stderr, "Usage: %s <file_in> <file_out>\n", argv[0]);
@@ -19,36 +20,44 @@ int main(int argc, char **argv) {
   }
 
   // Define input file
-  const char *inputFileName = argv[1];
-  FILE *inputFile = fopen(inputFileName, "r");
+  const char *input_file_name = argv[1];
+  FILE *input_file = fopen(input_file_name, "r");
 
-  if (inputFile == NULL) {
-    fprintf(stderr, "Error: Cannot open file %s\n", inputFileName);
+  if (input_file == NULL) {
+    fprintf(stderr, "Error: Cannot open file %s\n", input_file_name);
     return EXIT_FAILURE;
   }
 
-  const char *outputFileName = argv[2];
-  FILE *outputFile = fopen(outputFileName, "wb");
+  const char *output_location = argv[2];
 
-  if (outputFile == NULL) {
-    fprintf(stderr, "Error: Cannot open file %s\n", outputFileName);
+  //  Append .bin to file
+  const char *extension = ".bin";
+  char *output_file_name = (char *)malloc(strlen(output_location) +  strlen(extension) + 1);
+  strcpy(output_file_name, output_location); strcat(output_file_name, extension);
+  FILE *output_file = fopen(output_file_name, "wb");
+
+  // TODO - turn into MACRO
+  if (output_file == NULL) {
+    fprintf(stderr, "Error: Cannot open file %s\n", output_file_name);
+    fclose(input_file);
+    free(output_file_name);
     return EXIT_FAILURE;
   }
 
-  // Should make outputFile optional
+  // Should make output_file optional as symtab doesn't need it
   context file_context = create_context();
-  parse_file(inputFile, build_symtab, outputFile, file_context);
-  fseek(inputFile, 0, SEEK_SET);
-  reset_linenos(file_context);
-  parse_file(inputFile, process_line, outputFile, file_context);
+  parse_file(input_file, build_symtab, output_file, file_context);
+  fseek(input_file, 0, SEEK_SET);
+  parse_file(input_file, process_line, output_file, file_context);
 
-  fclose(inputFile);
-
+  fclose(input_file);
   if( file_context->nerrors == 0 )		// no errors? output the file
 	{
-        return EXIT_SUCCESS;
+          free(output_file_name);
+          return EXIT_SUCCESS;
 	}
   fprintf( stderr, "%d errors\n", file_context->nerrors );
-  unlink(outputFileName);
+  unlink(output_file_name);
+  free(output_file_name);
   return EXIT_FAILURE;
 }
