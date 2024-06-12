@@ -2,6 +2,7 @@
 #include "emulate.h"
 
 // Initialize memory, registers and flags
+uint8_t memory[MEMORY_SIZE] = {0}; // Emulated memory
 ARMv8_State state = {
     .R = {0}, .ZR = 0, .PC = 0, .SP = 0, .pstate = {false, true, false, false}};
 

@@ -7,10 +7,17 @@
 
 // Define constants for memory, halt instruction
 #define MEMORY_SIZE (2 * 1024 * 1024) // 2MB of memory
-#define ZERO_REGISTER_ENCODING 31     // 11111
 #define HALT_INSTRUCTION 0x8a000000   // Halt instruction
+#define NO_REGISTERS 31
+#define ZR_SP 31     // 11111
 
-// Prototypes for functions
+#define INSTR_BYTES 4
+#define BYTE_SIZE 8
+#define MASK32 0xFFFFFFFFLL
+#define MASK8 0xFFLL
+ 
+
+// Prototypes for functions - code structure
 extern void binaryFileLoad(const char *inputFileName);
 extern uint32_t fetch();
 extern void decode(uint32_t instruction);
@@ -18,9 +25,12 @@ extern void executeDataProcessImmediate(uint32_t instruction);
 extern void executeDataProcessRegister(uint32_t instruction);
 extern void executeLoadsAndStores(uint32_t instruction);
 extern void executeBranches(uint32_t instruction);
-extern int processDataRegisterHelper(int instruction, int op1, int op2);
+extern int64_t add(int64_t int1, int64_t int2, bool sf, bool setFlags);
+extern int64_t sub(int64_t int1, int64_t int2, bool sf, bool setFlags);
+extern int64_t loadMemory(int32_t targetAddress, bool sf);
+extern void storeMemory(int32_t targetAddress, uint64_t value, bool sf);
 extern uint32_t extractBits(uint32_t n, int start, int end);
-extern int64_t signExtend(int32_t value);
+extern int32_t signExtend(int32_t value, int nbits);
 extern void printState(const char *outputFileName);
 
 /*
@@ -30,12 +40,12 @@ extern void printState(const char *outputFileName);
 */
 
 // Define structure for the ARMv8 machine state
-uint8_t memory[MEMORY_SIZE] = {0}; // Emulated memory
 typedef struct ARMv8_State
 {
-    int64_t R[31]; // General Purpose Registers
+    int64_t R[NO_REGISTERS]; // General Purpose Registers
     uint64_t ZR;   // Zero Register
     uint64_t PC;   // Program Counter
+    uint64_t SP;   // Stack Pointer
     struct PSTATE  // Processor State
     {
         bool N;
