@@ -1,48 +1,5 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <string.h>
-
-// Define constants for memory, halt instruction
-#define MEMORY_SIZE (2 * 1024 * 1024) // 2MB of memory
-#define ZERO_REGISTER_ENCODING 31     // 11111
-#define HALT_INSTRUCTION 0x8a000000   // Halt instruction
-
-// Prototypes for functions
-void binaryFileLoad(const char *inputFileName);
-uint32_t fetch();
-void decode(uint32_t instruction);
-void executeDataProcessImmediate(uint32_t instruction);
-void executeDataProcessRegister(uint32_t instruction);
-void executeLoadsAndStores(uint32_t instruction);
-void executeBranches(uint32_t instruction);
-int processDataRegisterHelper(int instruction, int op1, int op2);
-uint32_t extractBits(uint32_t n, int start, int end);
-int64_t signExtend(int32_t value);
-void printState(const char *outputFileName);
-
-/*
-    1.1 An Armv8 Emulator
-        - define structure for the ARMv8 machine state
-        - initialize memory, registers and flags
-*/
-
-// Define structure for the ARMv8 machine state
-uint8_t memory[MEMORY_SIZE] = {0}; // Emulated memory
-typedef struct ARMv8_State
-{
-    int64_t R[31]; // General Purpose Registers
-    uint64_t ZR;   // Zero Register
-    uint64_t PC;   // Program Counter
-    struct PSTATE  // Processor State
-    {
-        bool N;
-        bool Z;
-        bool C;
-        bool V;
-    } pstate;
-} ARMv8_State;
+// Header file
+#include "emulate.h"
 
 // Initialize memory, registers and flags
 ARMv8_State state = {
@@ -77,11 +34,10 @@ void binaryFileLoad(const char *inputFileName)
 uint32_t fetch()
 {
     // Get bytes from address in little-endian style
-    uint32_t *bytes = (uint32_t *)(memory + state.PC);
-    return (bytes[3] << 24) |
-           (bytes[2] << 16) |
-           (bytes[1] << 8) |
-           bytes[0];
+    return (((uint32_t)memory[state.PC + 3]) << 24) |
+           (((uint32_t)memory[state.PC + 2]) << 16) |
+           (((uint32_t)memory[state.PC + 1]) << 8) |
+           ((uint32_t)memory[state.PC + 0]);
 }
 
 /*
@@ -872,7 +828,7 @@ int main(int argc, char **argv)
     }
     // Define input and output files
     const char *inputFileName = argv[1];
-    const char *outputFileName = argv[2];
+    const char *outputFileName = (argc > 2) ? argv[2] : NULL;
 
     // Load binary file
     binaryFileLoad(inputFileName);
