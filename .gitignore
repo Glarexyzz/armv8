@@ -3,6 +3,7 @@
 armv8_testsuite/
 tests/
 .idea/
+test1*
 #ignore pyenv virtualenv
 .python-version
 

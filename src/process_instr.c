@@ -15,7 +15,7 @@
 //  Char s will be modified!
 //  Each token will be null terminated
 //  Token array will be null terminated if less values
-//  Returns number of oversized tokens
+//  Returns number of oversized tokens and modifies s, NULL if nothing after num_reg otherwise line that was left
 static int split_string(char *s, char **token_array, int max_size, int max_tokens) {
   char *str1 = s;
   char *saveptr;
@@ -46,6 +46,8 @@ static int split_string(char *s, char **token_array, int max_size, int max_token
       num_oversized++;
     }
   }
+  // Add remains of line to s
+  s = saveptr;
   return num_oversized;
 }
 
@@ -175,6 +177,15 @@ uint32_t multiply_instr(char *opc, char * rest_instr, context file_context){
         for (int i = 0; i < NUMREGS; i++) free(reg_strs[i]);
         return 0; //No point continuing
     }
+  }
+
+//  Check nothing after registers - TODO - test (what happens with whitespace?)
+  if (rest_instr[0] == '\0'){
+    char error_message[MAXERRORLEN];
+    snprintf(error_message, MAXERRORLEN, "Too many registers defined (Expected: %d). Make sure there are no trailing characters", NUMREGS);
+    error(error_message, file_context);
+    for (int i = 0; i < NUMREGS; i++) free(reg_strs[i]);
+    return 0; //No point continuing
   }
 
   bool no_errors = parse_regs(reg_strs, NUMREGS, &instr, file_context);
