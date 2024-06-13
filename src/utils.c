@@ -92,7 +92,7 @@ int get_reg_num(char *reg_str, context file_context){
     return -1;
 }
 
-//Returns true if no errors parsed - false for errors
+// Returns true if no errors parsed - false for errors
 bool parse_regs(char **reg_strs, int num_regs, uint32_t *regs, context file_context){
     int res = get_sf(reg_strs, num_regs, file_context);
     if (res < 0) return false;
