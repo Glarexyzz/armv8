@@ -47,7 +47,13 @@ opc_to_func opc_func_pairs[] = {
         // Branch opcodes
         {"b", branch_instr},
         {"br", branch_instr},
-        {"b.cond", branch_instr},
+        {"b.eq", branch_instr},
+        {"b.ne", branch_instr},
+        {"b.ge", branch_instr},
+        {"b.lt", branch_instr},
+        {"b.gt", branch_instr},
+        {"b.le", branch_instr},
+        {"b.al", branch_instr},
 
         // SDT opcodes
         {"ldr", sdt_instr},
@@ -56,6 +62,7 @@ opc_to_func opc_func_pairs[] = {
         // Directive opcodes
         {".int", directive_instr},
 };
+
 //Return the function to process the instruction with that opcode
 //Returns NULL if not a valid OPCODE - you must check!!
 instr_processor get_instr_processor(char *opc_str){
@@ -64,6 +71,7 @@ instr_processor get_instr_processor(char *opc_str){
             return opc_func_pairs[i].opc_func;
         }
     }
-//  No opcode matches
+
+    //  No opcode matches
     return NULL;
 }
