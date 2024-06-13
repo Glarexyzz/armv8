@@ -4,55 +4,47 @@
 #include <ctype.h>
 #include "process_instr.h"
 #include "globals.h"
+#include "utils.h"
 #define MAXREGSTRLEN 3 // xNN or wzr - so always max 3
-#define MAXERRORLEN 128
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-//  Max-size has to include the null value
-//  Char s will be modified!
-//  Each token will be null terminated
-//  Token array will be null terminated if less values
-//  Returns number of oversized tokens and modifies s, NULL if nothing after num_reg otherwise line that was left
-static int split_string(char *s, char **token_array, int max_size, int max_tokens) {
-  char *str1 = s;
-  char *saveptr;
-  int num_oversized = 0;
 
-  for (int j = 0; j < max_tokens; j++, str1 = NULL) {
-    char *token = strtok_r(str1, ", ", &saveptr);
-    if (token == NULL) {
-      // No more tokens
-      token_array[j] = NULL; // Indicate end of tokens
-      return num_oversized;
-    }
 
-    // Allocate memory for the token
-    token_array[j] = (char *)malloc(max_size);
-    if (token_array[j] == NULL) {
-      // Handle memory allocation failure
-      fprintf(stderr, "Internal malloc error!!");
-      return -1;
-    }
+//  Using uint8_t as no uint4_t but only bottom 4 bits will be used
+typedef struct {
+  bool sf; //bit-width of registers - 0=32 (w), 1=64 (x-registers)
+  uint8_t opc;
+  uint8_t op0; // ALWAYS 100
+  uint8_t opi;
+  uint16_t operand; // 5 - 22 bits (18 bits)
+  uint8_t rd;
+} dp_imm_instr;
 
-    // Copy the token and ensure it's null-terminated
-    strncpy(token_array[j], token, max_size);
-    token_array[j][max_size - 1] = '\0'; // Ensure string is null-terminated
+typedef struct {
+  uint8_t hw; // top 2 bits
+  uint16_t imm16;
+} wide_operand;
 
-    // Check if the token was oversized
-    if (strlen(token) > max_size - 1) {
-      num_oversized++;
-    }
-  }
-  // Add remains of line to s
-  s = saveptr;
-  return num_oversized;
+typedef struct {
+  bool sh;
+  uint16_t imm12;
+  uint8_t rn;
+} arith_operand;
+
+bool parse_arith_operand(char *str_operand, arith_operand *operand, context file_context){
+  return true;
 }
 
 uint32_t arithmetic_instr(char *opc, char * rest_instr, context file_context){
-    return 0;
+// Applies to: add(s), sub(s), cmp/n - set flags rd is zr, neg(s) - rn is zr
+//  Two operand: <opcode> rd, rn, <operand> Applies to arithmetic and bit-logic operations.
+//  Operand can be either rm or #<imm> with optional{, <shift> #<amount> }
+//  If add or sub - rd, rn, <op2>, if cmp
+
+  return 0;
 }
 uint32_t logical_instr(char *opc, char * rest_instr, context file_context){
     return 0;
@@ -73,48 +65,6 @@ typedef struct {
   uint8_t rn;
   uint8_t rd;
 } dp_reg_instr;
-
-//typedef struct m_instr *minstr;
-//-1 if error raised, 0 for w (32), 1 for x (64)
-int get_sf(char **reg_strs, int max_num_regs, context file_context){
-  char old_sf_str = reg_strs[0][0];
-  for (int i = 0; i < max_num_regs; i++){
-      char sf_str = reg_strs[i][0];
-      if (sf_str != 'x' && sf_str != 'w'){
-        error("Register names must start with 'x' or 'w'", file_context);
-        return -1;
-      }
-      if (sf_str != old_sf_str){
-        error("Conflicting register bit sizes", file_context);
-        return -1;
-      }
-  }
-  return old_sf_str=='x' ? 1 : 0; //1 for 64, o
-}
-//Num or zr should be
-//-1 if error raised (invalide reg_num - catches NULL registers and returns -1)
-int get_reg_num(char *reg_str, context file_context){
-  if(reg_str == NULL){ //Should have already been checked
-    error("Missing register value", file_context);
-    return -1;
-  }
-  char reg_num_str[2]; //either NN or zr
-  strncpy(reg_num_str, reg_str+1, 2); //skip sf
-  if (strcmp(reg_num_str, "zr") == 0){
-    return 31;
-  }
-//  Could be single digit
-  if (isdigit(reg_num_str[0]) && (isdigit(reg_num_str[1]) || reg_num_str[1] == '\0')){
-    int reg_num = atoi(reg_num_str);
-    if (reg_num > 30){
-      error("Register index must be 0<=n<= 30 or zr", file_context);
-      return -1;
-    }
-    return reg_num;
-  }
-  error("Register index must be an Int or zr", file_context);
-  return -1;
-}
 
 
 //Returns true if no errors parsed - false for errors

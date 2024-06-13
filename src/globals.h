@@ -8,7 +8,7 @@
 #include <stdbool.h>
 
 #define MAXLINELEN 1024
-
+#define MAXERRORLEN 128
 
 struct context {
     int nerrors;
