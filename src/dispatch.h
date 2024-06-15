@@ -5,6 +5,7 @@
 #ifndef ARMV8_2_DISPATCH_H
 #define ARMV8_2_DISPATCH_H
 #include "process_instr.h"
+#include "arith_instr.h"
 
 instr_processor get_instr_processor(char *opc_str);
 #endif //ARMV8_2_DISPATCH_H

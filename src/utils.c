@@ -8,6 +8,31 @@
 #include <stdint.h>
 #include "utils.h"
 
+// Return true for no errors, false otherwise
+// Checks right number and no oversized, prints errors to error using file_context
+// Frees reg_strs if errors found
+bool split_string_error_checking(char *s, char **token_array, int max_size, int num_tokens, context file_context){
+  int num_oversized = split_string(s, token_array, max_size, num_tokens);
+  if (num_oversized > 0){
+    char error_message[MAXERRORLEN];
+    snprintf(error_message, MAXERRORLEN, "%d oversized register labels (Max length for registers: %d)", num_oversized, max_size);
+    error(error_message, file_context);
+    for (int i = 0; i < num_tokens; i++) free(token_array[i]);
+    return false;
+  }
+//  Check right number of registers
+  for (int i = 0; i < num_tokens; i++){
+    if (token_array[i] == NULL){
+        char error_message[MAXERRORLEN];
+        snprintf(error_message, MAXERRORLEN, "Not enough registers defined (Expected: %d, Found: %d)", num_tokens, i);
+        error(error_message, file_context);
+        for (int i = 0; i < num_tokens; i++) free(token_array[i]);
+        return false;
+    }
+  }
+  return true;
+}
+
 //  Max-size has to include the null value
 //  Char s will be modified!
 //  Each token will be null terminated
@@ -93,10 +118,10 @@ int get_reg_num(char *reg_str, context file_context){
 }
 
 //Returns true if no errors parsed - false for errors
-bool parse_regs(char **reg_strs, int num_regs, uint32_t *regs, context file_context){
+bool parse_regs(char **reg_strs, int num_regs, bool *sf, uint8_t *regs, context file_context){
     int res = get_sf(reg_strs, num_regs, file_context);
     if (res < 0) return false;
-    dp_instr->sf = (bool) res;
+    *sf = (bool) res;
     for (int i = 0; i < num_regs; i++){
         res = get_reg_num(reg_strs[i], file_context);
         if (res < 0) return false;

@@ -13,7 +13,6 @@
 
 typedef uint32_t (*instr_processor)(char *opc, char * rest_instr, context file_context);
 
-uint32_t arithmetic_instr(char *opc, char * rest_instr, context file_context);
 uint32_t logical_instr(char *opc, char * rest_instr, context file_context);
 uint32_t wide_move_instr(char *opc, char * rest_instr, context file_context);
 uint32_t multiply_instr(char *opc, char * rest_instr, context file_context);
