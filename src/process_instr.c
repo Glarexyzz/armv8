@@ -5,6 +5,7 @@
 #include "process_instr.h"
 #include "globals.h"
 #include "utils.h"
+#include "sym_tab.h"
 #define MAXREGSTRLEN 3 // xNN or wzr - so always max 3
 
 #include <stdio.h>
@@ -145,25 +146,6 @@ uint32_t wide_move_instr(char *opc, char * rest_instr, context file_context){
     return 0;
 }
 
-//Returns true if no errors parsed - false for errors
-//bool parse_regs(char **reg_strs, int num_regs, dp_reg_instr *dp_instr, context file_context){
-//  int res = get_sf(reg_strs, num_regs, file_context);
-//  if (res < 0) return false;
-//  dp_instr->sf = (bool) res;
-//  for (int i = 0; i < num_regs; i++){
-//    res = get_reg_num(reg_strs[i], file_context);
-//    if (res < 0) return false;
-//    switch (i) {
-//      case 0: dp_instr->rm = (uint8_t) res; break;
-//      case 1: dp_instr->operand |= (uint8_t) res; break;
-//      case 2: dp_instr->rn = (uint8_t) res; break;
-//      case 3: dp_instr->rd = (uint8_t) res; break;
-//      default: return false; // Unexpected number of registers
-//    }
-//  }
-//  return true;
-//}
-
 // Applies to madd, msub, mul, mneg
 uint32_t multiply_instr(char *opc, char * rest_instr, context file_context){
   // Initialise registers
@@ -272,7 +254,7 @@ uint32_t branch_instr(char *opc, char *rest_instr, context file_context) {
   branch_type b_type;
 
   // Unconditional branch
-  if(strcmp(opc, "b" == 0)) {
+  if(strcmp(opc, "b") == 0) {
     b_type = UNCONDITIONAL;
     instr.uncond.uncond_start = 5;
     instr.uncond.simm26 = get_sym(rest_instr) - file_context->prog_lineno;
