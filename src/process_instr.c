@@ -12,7 +12,42 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* SRAP FOR NOW
+typedef struct {
+  uint8_t hw; // top 2 bits
+  uint16_t imm16;
+} wide_operand;
 
+typedef struct {
+  bool sh;
+  uint16_t imm12;
+  uint8_t rn;
+} arith_imm_operand;
+
+typedef union {
+  wide_operand w;
+  arith_imm_operand a;
+} dp_imm_operand;
+
+//  Assumes well formatted dp reg
+uint32_t dp_imm_to_binary(dp_imm_instr instr){
+//  Based on opi return different
+    uint32_t operand = 0;
+    if (instr.opi == 2){
+      operand |= (instr.operand.a.sh << 17);
+      operand |= (instr.operand.a.imm12 << 5);
+      operand |= (instr.operand.a.rn);
+    } else {
+      operand |= (instr.operand.w.hw << 17);
+      operand |= (instr.operand.w.imm16 << 0);
+    }
+  return (instr.sf << 31) |
+    (instr.opc << 29) |
+    (instr.op0 << 25) |
+    (operand << 5) |
+    (instr.rd << 0);
+}
+*/
 
 //  Using uint8_t as no uint4_t but only bottom 4 bits will be used
 typedef struct {
@@ -67,10 +102,6 @@ uint32_t dp_reg_to_binary(dp_reg_instr instr){
     (instr.rd << 0);
 }
 
-bool parse_arith_operand(char *str_operand, arith_operand *operand, context file_context){
-  return true;
-}
-
 //Should be similar to/same as parse_arith_operand?
 bool parse_logic_operand(char *str_operand, logic_operand_parse_result *result, context file_context) {
   // str_operand of form rm or rm{, shift #amount}
@@ -89,15 +120,6 @@ bool parse_logic_operand(char *str_operand, logic_operand_parse_result *result, 
     result->operand = (uint8_t)atoi(strtok(NULL, "{, #}"));
   }
   return true;
-}
-
-uint32_t arithmetic_instr(char *opc, char * rest_instr, context file_context){
-// Applies to: add(s), sub(s), cmp/n - set flags rd is zr, neg(s) - rn is zr
-//  Two operand: <opcode> rd, rn, <operand> Applies to arithmetic and bit-logic operations.
-//  Operand can be either rm or #<imm> with optional{, <shift> #<amount> }
-//  If add or sub - rd, rn, <op2>, if cmp
-
-  return 0;
 }
 
 uint32_t logical_instr(char *opc, char * rest_instr, context file_context){
@@ -287,68 +309,6 @@ uint32_t branch_instr(char *opc, char *rest_instr, context file_context) {
 
   // Return binary representation as uint32_t
   return branch_to_binary(instr, b_type);
-}
-
-/*
-  Loads and Stores structure - Single Data Transfer, Load Literal
-*/
-
-typedef enum SdtType {
-    SDT,
-    LL
-} sdt_type;
-
-typedef struct single_data {
-  bool sdt_start;
-  bool sf;
-  uint8_t sdt_mid1;
-  bool U;
-  uint8_t sdt_mid2;
-  bool L;
-  int16_t offset;
-  uint8_t xn;
-  uint8_t rt;
-} single_data;
-
-typedef struct load_lit {
-  bool ll_start;
-  bool sf;
-  uint8_t ll_mid1;
-  int32_t simm19;
-  uint8_t rt;
-} load_lit;
-
-typedef union sdt{
-  single_data sdt;
-  load_lit ll;
-} sdt;
-
-// Converts a single data transfer instruction into a binary number
-uint32_t sdt_to_binary(sdt instr, sdt_type type){
-  switch(type) {
-    case SDT:
-      return (instr.sdt.sdt_start << 31) |
-          (instr.sdt.sf << 30) |
-          (instr.sdt.sdt_mid1 << 25) |
-          (instr.sdt.U << 24) |
-          (instr.sdt.sdt_mid2 << 23) |
-          (instr.sdt.L << 22) |
-          (instr.sdt.offset << 10) |
-          (instr.sdt.xn << 5) |
-          instr.sdt.rt;
-      break;
-
-    case LL:
-      return (instr.ll.ll_start << 31) |
-          (instr.ll.sf << 30) |
-          (instr.ll.ll_mid1 << 24) |
-          (instr.ll.simm19 << 5) |
-          instr.ll.rt;
-      break;
-
-    default:
-      return EXIT_FAILURE;
-  }
 }
 
 // Breaks down a Single Data Transfer instruction
