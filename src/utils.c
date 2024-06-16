@@ -8,12 +8,23 @@
 #include <stdint.h>
 #include "utils.h"
 
+// May become own utils package later...
+bool isfunc_str(const char *str, int (* isfunc)(int)) {
+    while (*str) {
+        if (!isfunc(*str)) {
+            return false; // Return 0 (false) if any character is not alphabetic
+        }
+        str++;
+    }
+    return true; // Return 1 (true) if all characters are alphabetic
+}
+
 // Return true for no errors, false otherwise
 // Checks right number and no oversized, prints errors to error using file_context
 // Frees reg_strs if errors found
-bool split_string_error_checking(char *s, char **token_array, int max_size, int num_tokens, context file_context){
+bool split_string_error_checking(char *s, char **token_array, int max_size, int num_tokens, context file_context, bool no_oversized, bool right_num, bool nothing_after){
   int num_oversized = split_string(s, token_array, max_size, num_tokens);
-  if (num_oversized > 0){
+  if (no_oversized && num_oversized > 0){
     char error_message[MAXERRORLEN];
     snprintf(error_message, MAXERRORLEN, "%d oversized register labels (Max length for registers: %d)", num_oversized, max_size);
     error(error_message, file_context);
@@ -21,6 +32,7 @@ bool split_string_error_checking(char *s, char **token_array, int max_size, int 
     return false;
   }
 //  Check right number of registers
+  if (right_num){
   for (int i = 0; i < num_tokens; i++){
     if (token_array[i] == NULL){
         char error_message[MAXERRORLEN];
@@ -29,6 +41,17 @@ bool split_string_error_checking(char *s, char **token_array, int max_size, int 
         for (int i = 0; i < num_tokens; i++) free(token_array[i]);
         return false;
     }
+  }
+  }
+  if (nothing_after){
+    //  Check nothing after registers - TODO - test (what happens with whitespace?)
+  if (s[0] == '\0'){
+    char error_message[MAXERRORLEN];
+    snprintf(error_message, MAXERRORLEN, "Too many registers defined (or clauses) (Expected: %d). Make sure there are no trailing characters", max_size);
+    error(error_message, file_context);
+    for (int i = 0; i < num_tokens; i++) free(token_array[i]);
+    return false; //No point continuing
+  }
   }
   return true;
 }
@@ -116,6 +139,7 @@ int get_reg_num(char *reg_str, context file_context){
     error("Register index must be an Int or zr", file_context);
     return -1;
 }
+
 
 //Returns true if no errors parsed - false for errors
 bool parse_regs(char **reg_strs, int num_regs, bool *sf, uint8_t *regs, context file_context){

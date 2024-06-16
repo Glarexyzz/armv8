@@ -9,7 +9,7 @@
 #include <ctype.h>
 
 #include "sym_tab.h"
-#include "globals.h"
+#include "utils.h"
 
 // Symbol table:
 
@@ -83,7 +83,7 @@ bool build_symtab(context file_context, FILE *_) {
             error("Error: Duplicate label", file_context);
             return true;
         }
-        if (!isalpha_str(file_context->cur_line)){
+        if (!isfunc_str(file_context->cur_line, &isalpha)){
             error("Error: Label must only contain a-zA-Z", file_context);
             return true;
         }

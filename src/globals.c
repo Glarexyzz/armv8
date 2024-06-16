@@ -15,16 +15,6 @@ void error( char *msg, context context )
     context->nerrors++;
 }
 
-// May become own utils package later...
-bool isalpha_str(const char *str) {
-    while (*str) {
-        if (!isalpha(*str)) {
-            return false; // Return 0 (false) if any character is not alphabetic
-        }
-        str++;
-    }
-    return true; // Return 1 (true) if all characters are alphabetic
-}
 //Default values - nerrors = 0, file_lineno = prog_lineno = 1
 context create_context(void){
     context new = malloc(sizeof(struct context));

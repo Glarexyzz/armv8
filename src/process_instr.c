@@ -71,7 +71,7 @@ typedef struct {
 
 //Should be similar to/same as parse_arith_operand?
 bool parse_logic_operand(char *str_operand, logic_operand_parse_result *result, context file_context) {
-  // str_operand of form rm or rm{, shift #amount} - the brackets are to show it's optional no actually in code.
+  // str_operand of form rm or rm{, shift #amount} - the brackets are to show it's optional not actually in code.
   result->rm = get_reg_num(strtok(str_operand, "{, #}"),file_context);
 
   char* shiftType = strtok(NULL, "{, #}");
@@ -145,20 +145,10 @@ uint32_t multiply_instr(char *opc, char * rest_instr, context file_context){
   if (strcmp(opc, "msub") == 0 || strcmp(opc, "mneg") == 0) instr.operand |= (1 << 6);
   char *reg_strs[NUMREGS];
 //  +1 for the null byte
-  bool no_errors = split_string_error_checking(rest_instr, reg_strs, MAXREGSTRLEN + 1, NUMREGS, file_context);
+  bool no_errors = split_string_error_checking(rest_instr, reg_strs, MAXREGSTRLEN + 1, NUMREGS, file_context, true, true, true);
   if (!no_errors) return 0; // reg_strs freed by error_checking func
 
-//  Check nothing after registers - TODO - test (what happens with whitespace?)
-  if (rest_instr[0] == '\0'){
-    char error_message[MAXERRORLEN];
-    snprintf(error_message, MAXERRORLEN, "Too many registers defined (Expected: %d). Make sure there are no trailing characters", NUMREGS);
-    error(error_message, file_context);
-    for (int i = 0; i < NUMREGS; i++) free(reg_strs[i]);
-    return 0; //No point continuing
-  }
-
   uint8_t reg_pointers[NUMREGS];
-
   no_errors = parse_regs(reg_strs, NUMREGS, &instr.sf, reg_pointers, file_context);
 
   for (int i = 0; i < NUMREGS; i++) free(reg_strs[i]);
