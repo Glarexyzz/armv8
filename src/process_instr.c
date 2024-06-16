@@ -72,9 +72,9 @@ typedef struct {
 //Should be similar to/same as parse_arith_operand?
 bool parse_logic_operand(char *str_operand, logic_operand_parse_result *result, context file_context) {
   // str_operand of form rm or rm{, shift #amount} - the brackets are to show it's optional not actually in code.
-  result->rm = get_reg_num(strtok(str_operand, "{, #}"),file_context);
+  result->rm = get_reg_num(strtok(str_operand, ", #"),file_context);
 
-  char* shiftType = strtok(NULL, "{, #}");
+  char* shiftType = strtok(NULL, ", #");
   if (shiftType == NULL) {
     // operand is just rm, so shift rm by 0
     result->shType == 0;
@@ -84,7 +84,7 @@ bool parse_logic_operand(char *str_operand, logic_operand_parse_result *result, 
     if (strcmp(shiftType, "lsr")) {result->shType = 1;} else
     if (strcmp(shiftType, "asr")) {result->shType = 2;} else
     if (strcmp(shiftType, "ror")) {result->shType = 3;} else
-    result->operand = (uint8_t)atoi(strtok(NULL, "{, #}"));
+    result->operand = (uint8_t)atoi(strtok(NULL, ", #"));
   }
   return true;
 }
@@ -97,14 +97,14 @@ uint32_t logical_instr(char *opc, char * rest_instr, context file_context){
   char** argArray;
 
   //Set opcode and N
-  if (strcmp(opc, "and")) {instr.opc = 0; N = 0;} else
-  if (strcmp(opc, "bic")) {instr.opc = 0; N = 1;} else
-  if (strcmp(opc, "orr")) {instr.opc = 1; N = 0;} else
-  if (strcmp(opc, "orn")) {instr.opc = 1; N = 1;} else
-  if (strcmp(opc, "eor")) {instr.opc = 2; N = 0;} else
-  if (strcmp(opc, "eon")) {instr.opc = 2; N = 1;} else
-  if (strcmp(opc, "ands")) {instr.opc = 3; N = 0;} else
-  if (strcmp(opc, "bics")) {instr.opc = 3; N = 1;} else
+  if (strcmp(opc, "and") == 0) {instr.opc = 0; N = 0;} else
+  if (strcmp(opc, "bic") == 0) {instr.opc = 0; N = 1;} else
+  if (strcmp(opc, "orr") == 0) {instr.opc = 1; N = 0;} else
+  if (strcmp(opc, "orn") == 0) {instr.opc = 1; N = 1;} else
+  if (strcmp(opc, "eor") == 0) {instr.opc = 2; N = 0;} else
+  if (strcmp(opc, "eon") == 0) {instr.opc = 2; N = 1;} else
+  if (strcmp(opc, "ands") == 0) {instr.opc = 3; N = 0;} else
+  if (strcmp(opc, "bics") == 0) {instr.opc = 3; N = 1;} else
   {return 0;}
 
   // +1 for the null byte
