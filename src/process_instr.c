@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "binary.h"
 
 /* SRAP FOR NOW
 typedef struct {
@@ -49,28 +50,7 @@ uint32_t dp_imm_to_binary(dp_imm_instr instr){
 }
 */
 
-//  Using uint8_t as no uint4_t but only bottom 4 bits will be used
-typedef struct {
-  bool sf; //bit-width of registers - 0=32 (w), 1=64 (x-registers)
-  uint8_t opc;
-  uint8_t op0; // ALWAYS 100
-  uint8_t opi;
-  uint16_t operand; // 5 - 22 bits (18 bits)
-  uint8_t rd;
-} dp_imm_instr;
 
-//  Using uint8_t as no uint4_t but only bottom 4 bits will be used
-typedef struct {
-  bool sf; //bit-width of registers - 0=32 (w), 1=64 (x-registers)
-  uint8_t opc;
-  bool M; //1 for Multiply - 0 for arithmetic, bit-logic
-  uint8_t op0; // ALWAYS 101
-  uint8_t opr;
-  uint8_t rm;
-  uint8_t operand;
-  uint8_t rn;
-  uint8_t rd;
-} dp_reg_instr;
 
 typedef struct {
   uint8_t hw; // top 2 bits
@@ -89,22 +69,9 @@ typedef struct {
   uint8_t operand; // 6 bit determining shift amount
 } logic_operand_parse_result;
 
-//  Assumes well formatted dp reg
-uint32_t dp_reg_to_binary(dp_reg_instr instr){
-  return (instr.sf << 31) |
-    (instr.opc << 29) |
-    (instr.M << 28) |
-    (instr.op0 << 25) |
-    (instr.opr << 21) |
-    (instr.rm << 16) |
-    (instr.operand << 10) |
-    (instr.rn << 5) |
-    (instr.rd << 0);
-}
-
 //Should be similar to/same as parse_arith_operand?
 bool parse_logic_operand(char *str_operand, logic_operand_parse_result *result, context file_context) {
-  // str_operand of form rm or rm{, shift #amount}
+  // str_operand of form rm or rm{, shift #amount} - the brackets are to show it's optional no actually in code.
   result->rm = get_reg_num(strtok(str_operand, "{, #}"),file_context);
 
   char* shiftType = strtok(NULL, "{, #}");

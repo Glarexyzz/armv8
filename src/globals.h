@@ -9,6 +9,7 @@
 
 #define MAXLINELEN 1024
 #define MAXERRORLEN 128
+#define ZR 31
 
 struct context {
     int nerrors;

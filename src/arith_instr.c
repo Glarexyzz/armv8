@@ -13,68 +13,36 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef enum {LSL, LSR, ASR, ROR} shift_enum;
 
-typedef struct {
-  uint16_t imm12;
-  uint8_t shift_amount; //Always LSL
-} imm_operand;
-
-typedef struct {
-  uint8_t rm;
-  shift_enum shift_type;
-  uint8_t shift_amount;
-} reg_operand;
-
-typedef union {
-  imm_operand imm;
-  reg_operand reg;
-} operand_union;
-
-typedef struct {
-  operand_union val;
-  bool imm; // True if imm_operand, false for reg
-} instr_operand;
-
-
-typedef struct {
-  bool sf; //bit-width of registers - 0=32 (w), 1=64 (x-registers)
-  bool add; // true for add, false for sub
-  bool flags; // true to set flags false no set
-  uint8_t rd;
-  uint8_t rn;
-  bool imm; // if true then dp_imm_instr (no rm just imm12) - false then dp_reg_instr
-  instr_operand operand;
-} arith_instr;
 
 
 // True if no-errors (as always) - modifies instr_operand * sets to the right values
-// Not sure ", " bit is included?? - or about shifts for now
+// The ", " bit not included?? - or about shifts for now
 // Check nothing after instruction
 bool parse_operand(char *str_operand, instr_operand *instr, context file_context){
-  printf("%s", str_operand);
+  printf("Str operand: %s\n", str_operand);
   return true;
 }
 
-// Sets op0, opc and opi
-// Returns number of registers to count (Not including operand)
-// Will set rd (for cmp/n) to zr, rn (for neg) to zr
-//int set_arith_ops(char *opc, dp_imm_instr *instr){
-//  //  If add, sub, neg -> no set flags otherwise do
-//  TODO();
-//  if (strcmp(opc, "cmp") == 0 || strcmp(opc, "cmn") == 0);
-//  return 2;
-//}
-
 int initialise_arith_instr(char *opc, arith_instr *instr){
   // Set bool: add, flags, rd/rn if needed (for neg/cmp(n))
-//  Returns numregs expected (outside operand)
-  return 0;
-}
+//  Returns numregs expected (not including operand)
+  int NUMREGS = 2;
+  if (strncmp(opc, "add", 3) == 0 || strncmp(opc, "neg", 3) == 0) instr->add = true;
+  else instr->add = false;
 
-uint32_t arith_instr_to_binary(arith_instr instr){
-//  Convert to dp_imm or dp_reg then use those helper functions
-  return 0;
+  // check if opc is add, sub or neg for flags
+  if (strstr("add sub neg", opc) != NULL) instr->flags = false;
+  else instr->flags = true;
+
+  if (strncmp(opc, "neg", 3) == 0){
+    instr->rn = ZR; // 11111
+    NUMREGS--;
+  } else if (strncmp(opc, "cm", 2) == 0){
+    instr->rd = ZR;
+    NUMREGS--;
+  }
+  return NUMREGS;
 }
 
 uint32_t arithmetic_instr(char *opc, char *rest_instr, context file_context){

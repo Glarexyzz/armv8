@@ -69,7 +69,7 @@ int split_string(char *s, char **token_array, int max_size, int max_tokens) {
         }
     }
     // Add remains of line to s
-    s = saveptr;
+    *s = *saveptr;
     return num_oversized;
 }
 
