@@ -301,6 +301,7 @@ uint32_t sdt_instr(char *opc, char * rest_instr, context file_context){
     // True -> Immediate Address Literal ; False -> Label Literal
     int32_t literaladdress = (sndtoken[0] == '#') ? atoi(++sndtoken) : get_sym(sndtoken);
     simm19 = literaladdress - file_context->prog_lineno;
+    assert(abs(simm19) < (1 << 20)); //address of literal within 1MB of the current address
 
     // Store values into the instruction structure
     instr.ll.ll_start = 0;
@@ -386,5 +387,15 @@ uint32_t sdt_instr(char *opc, char * rest_instr, context file_context){
 */
 uint32_t directive_instr(char *opc, char * rest_instr, context file_context){
 
-    return 0;
+  // True -> Hexadecimal Value; False -> Decimal Value
+  int32_t dirvalue = (rest_instr[1] == 'x') ? strtol(rest_instr, NULL, 16) : atoi(rest_instr);
+  
+  
+  int *currentaddress = &(file_context->prog_lineno); // is this the current address?
+  // Set the address of the current instruction to 4 bytes
+  currentaddress = malloc(sizeof(int32_t)); 
+
+  // update the assembly file of the value at the current address
+  sprintf(file_context->cur_line, "%ld", dirvalue); 
+  return dirvalue;
 }
