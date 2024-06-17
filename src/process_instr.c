@@ -275,7 +275,108 @@ uint32_t sdt_instr(char *opc, char * rest_instr, context file_context){
   sdt instr;
   sdt_type sdt_type;
 
-  // TODO - the instructions
+  // Setup rt & sf
+  bool sf;
+  uint8_t rt;
+
+  // Setup tokens
+  const char delim[] = " ,x[";
+  char *saveptr;
+  
+  // First token contains RT
+  char * fsttoken = strtok_r(rest_instr, delim, saveptr); 
+  sf = (fsttoken[0] == 'w') ? 0 : 1; 
+  rt = (sf == 0) ? atoi(++fsttoken) : atoi(fsttoken); //remove prefix "w"
+
+  // Second token records xn or literal
+  char *sndtoken = strtok_r(NULL, delim, saveptr);
+  int sndlen = strlen(sndtoken);
+  sndtoken[sndlen - 1] = (sndtoken[sndlen - 1] == ']') ? "\0" : sndtoken[sndlen - 1];
+
+  // Check if the second token is literal or xn
+  if (sndtoken != '0' && atoi(sndtoken) == 0) {
+    // Load Literal
+    sdt_type = LL;
+    int32_t simm19;
+
+    // True -> Immediate Address Literal ; False -> Label Literal
+    int32_t literaladdress = (sndtoken[0] == '#') ? atoi(++sndtoken) : get_sym(sndtoken);
+    simm19 = literaladdress - file_context->prog_lineno;
+
+    // Store values into the instruction structure
+    instr.ll.ll_start = 0;
+    instr.ll.sf = sf;
+    instr.ll.ll_mid1 = 24;
+    instr.ll.simm19 = simm19;
+    instr.ll.rt = rt;
+  }
+
+  // SDT
+  else {
+    sdt_type = SDT;
+    bool u;
+    int16_t offset;
+
+    // Third token records the offset value
+    char *trdtoken = strtok_r(NULL, delim, saveptr);
+    int trdlen = strlen(trdtoken);
+
+    // Zero Unsigned Offset
+    if (trdtoken == NULL) {
+      u = 1;
+      offset = 0;
+    }
+
+    else if (trdtoken[0] == '#') {
+      u = 0;
+      trdtoken++;
+
+      switch (trdtoken[trdlen - 1]) {
+        // Unsigned Offset
+        case ']':
+          u = 1; // change it back
+          trdtoken[trdlen - 1] = "\0"; // get rid of "]" so only the immValue left
+          offset = (sf == 1) ? (atoi(trdtoken))/8 : (atoi(trdtoken))/4 ;
+          break;
+
+        // Pre-Indexed
+        case '!':
+          trdtoken[trdlen - 2] = "\0"; // get rid of "]!" so only the simmValue left
+          offset = (0 << 11) |
+            (atoi(trdtoken) << 2) |
+            3;
+          break;
+
+        // Post-Indexed
+        default:
+          offset = (0 << 11) |
+            (atoi(trdtoken) << 2) |
+            1;
+      }
+    }
+
+    // Register Offset
+    else {
+      u = 0;
+
+      // Add Register into the offset
+      trdtoken[trdlen - 1] = "\0"; // get rid of "]" so only the register number left
+      offset = (1 << 11) |
+        (atoi(trdtoken) << 6) |
+        26;
+    }
+
+    // Store values into the instruction structure
+    instr.sdt.sdt_start = 1;
+    instr.sdt.sf = sf;
+    instr.sdt.sdt_mid1 = 28;
+    instr.sdt.U = u;
+    instr.sdt.sdt_mid2 = 0;
+    instr.sdt.L = (strcmp(opc, "ldr") == 0) ? 1 : 0;
+    instr.sdt.offset = offset;
+    instr.sdt.xn = atoi(sndtoken);
+    instr.sdt.rt = rt;
+  }
 
   // Return binary representation as uint32_t
   return sdt_to_binary(instr, sdt_type);
