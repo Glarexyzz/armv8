@@ -278,44 +278,45 @@ uint32_t sdt_instr(char *opc, char * rest_instr, context file_context){
   bool sf;
   uint8_t rt;
 
+  // Setup tokens
   const char delim[] = " ,x[";
   char *saveptr;
-  char * fsttoken = strtok_r(rest_instr, delim, saveptr); //contains RT
-  // Decide sf
-  if (fsttoken[0] == "w") {
-    fsttoken++;
-    sf = 0;
-  }
-  else {
-    sf = 1;
-  }
-  // Get rt
-  rt = atoi(fsttoken);
+  
+  // First token contains RT
+  char * fsttoken = strtok_r(rest_instr, delim, saveptr); 
+  sf = (fsttoken[0] == 'w') ? 0 : 1; 
+  rt = (sf == 0) ? atoi(++fsttoken) : atoi(fsttoken); //remove prefix "w"
 
-  // Check if the second token is literal or not
+  // Second token records xn or literal
   char *sndtoken = strtok_r(NULL, delim, saveptr);
   int sndlen = strlen(sndtoken);
-  sndtoken[sndlen - 1] = (sndtoken[sndlen - 1] == "]") ? "\0" : sndtoken[sndlen - 1];
+  sndtoken[sndlen - 1] = (sndtoken[sndlen - 1] == ']') ? "\0" : sndtoken[sndlen - 1];
 
-  // Load Literal
-  if (sndtoken != "0" && atoi(sndtoken) == 0) {
+  // Check if the second token is literal or xn
+  if (sndtoken != '0' && atoi(sndtoken) == 0) {
+    // Load Literal
     sdt_type = LL;
+    int32_t simm19;
 
-    // TODO
+    // True -> Immediate Address Literal ; False -> Label Literal
+    int32_t literaladdress = (sndtoken[0] == '#') ? atoi(++sndtoken) : get_sym(sndtoken);
+    simm19 = literaladdress - file_context->prog_lineno;
 
     // Store values into the instruction structure
     instr.ll.ll_start = 0;
     instr.ll.sf = sf;
     instr.ll.ll_mid1 = 24;
-    instr.ll.simm19;
+    instr.ll.simm19 = simm19;
     instr.ll.rt = rt;
   }
 
+  // SDT
   else {
     sdt_type = SDT;
     bool u;
     int16_t offset;
 
+    // Third token records the offset value
     char *trdtoken = strtok_r(NULL, delim, saveptr);
     int trdlen = strlen(trdtoken);
 
@@ -325,7 +326,7 @@ uint32_t sdt_instr(char *opc, char * rest_instr, context file_context){
       offset = 0;
     }
 
-    else if (trdtoken[0] == "#") {
+    else if (trdtoken[0] == '#') {
       u = 0;
       trdtoken++;
 
