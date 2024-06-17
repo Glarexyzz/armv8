@@ -274,41 +274,107 @@ uint32_t sdt_instr(char *opc, char * rest_instr, context file_context){
   sdt instr;
   sdt_type sdt_type;
 
-  // Setup rt(Target Register)
+  // Setup rt & sf
+  bool sf;
+  uint8_t rt;
+
   const char delim[] = " ,x[";
   char *saveptr;
   char * fsttoken = strtok_r(rest_instr, delim, saveptr); //contains RT
-  // Need to wait for sdt_type confirmed thus to store RT into instr
-  if(fsttoken[0] == "w"){
+  // Decide sf
+  if (fsttoken[0] == "w") {
     fsttoken++;
-    bool sf = 0;
+    sf = 0;
   }
   else {
-    bool sf = 1;
+    sf = 1;
   }
-  uint8_t rt = atoi(fsttoken);
+  // Get rt
+  rt = atoi(fsttoken);
 
-  // Check if the next token is literal or not
+  // Check if the second token is literal or not
   char *sndtoken = strtok_r(NULL, delim, saveptr);
-  if(sndtoken != "0" && atoi(sndtoken) == 0) {
+  int sndlen = strlen(sndtoken);
+  sndtoken[sndlen - 1] = (sndtoken[sndlen - 1] == "]") ? "\0" : sndtoken[sndlen - 1];
+
+  // Load Literal
+  if (sndtoken != "0" && atoi(sndtoken) == 0) {
     sdt_type = LL;
+
+    // TODO
+
+    // Store values into the instruction structure
+    instr.ll.ll_start = 0;
+    instr.ll.sf = sf;
+    instr.ll.ll_mid1 = 24;
+    instr.ll.simm19;
+    instr.ll.rt = rt;
   }
 
-  // Load:
-  if(strcmp(opc, "ldr") == 0) {
+  else {
+    sdt_type = SDT;
+    bool u;
+    int16_t offset;
 
+    char *trdtoken = strtok_r(NULL, delim, saveptr);
+    int trdlen = strlen(trdtoken);
+
+    // Zero Unsigned Offset
+    if (trdtoken == NULL) {
+      u = 1;
+      offset = 0;
+    }
+
+    else if (trdtoken[0] == "#") {
+      u = 0;
+      trdtoken++;
+
+      switch (trdtoken[trdlen - 1]) {
+        // Unsigned Offset
+        case ']':
+          u = 1; // change it back
+          trdtoken[trdlen - 1] = "\0"; // get rid of "]" so only the immValue left
+          offset = (sf == 1) ? (atoi(trdtoken))/8 : (atoi(trdtoken))/4 ;
+          break;
+
+        // Pre-Indexed
+        case '!':
+          trdtoken[trdlen - 2] = "\0"; // get rid of "]!" so only the simmValue left
+          offset = (0 << 11) |
+            (atoi(trdtoken) << 2) |
+            3;
+          break;
+
+        // Post-Indexed
+        default:
+          offset = (0 << 11) |
+            (atoi(trdtoken) << 2) |
+            1;
+      }
+    }
+
+    // Register Offset
+    else {
+      u = 0;
+
+      // Add Register into the offset
+      trdtoken[trdlen - 1] = "\0"; // get rid of "]" so only the register number left
+      offset = (1 << 11) |
+        (atoi(trdtoken) << 6) |
+        26;
+    }
+
+    // Store values into the instruction structure
+    instr.sdt.sdt_start = 1;
+    instr.sdt.sf = sf;
+    instr.sdt.sdt_mid1 = 28;
+    instr.sdt.U = u;
+    instr.sdt.sdt_mid2 = 0;
+    instr.sdt.L = (strcmp(opc, "ldr") == 0) ? 1 : 0;
+    instr.sdt.offset = offset;
+    instr.sdt.xn = atoi(sndtoken);
+    instr.sdt.rt = rt;
   }
-
-  // Unsigned Immediate Offset:
-  
-
-  // Pre-Indexed:
-
-  // Post-Indexed:
-
-  // Register:
-
-  // Literal(Load-only):
 
   // Return binary representation as uint32_t
   return sdt_to_binary(instr, sdt_type);
