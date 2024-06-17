@@ -4,27 +4,42 @@
 
 \begin{document}
 
-\title{ARM Checkpoint... }
-\author{TODO}
+\title{C Project Interim Checkpoint}
+\author{Arthur Allilaire, Alex Ling, Bogdan Aron, Jacky Xiao}
 
 \maketitle
 
 \section{Group Organisation}
 
-Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor
-incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis
-nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
-Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu
-fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in
-culpa qui officia deserunt mollit anim id est laborum.
+We held an initial meeting where all members went over the specification, making sure each one of us understood the architectural aspects of our project. Following this, we discussed how best to divide the work on the emulator and how to effectively structure our code. Thus, we were able to divide the emulator into tasks that could be tackled simultaneously and equitably by the team.
 
-\section{Implementation Strategies}
+Bogdan initiated the project by creating a skeleton file for the emulator, setting up the IO interface and the functional structure of our code, with placeholders for each function. He managed the file loading and state printing components, ensuring proper input/output operations. Alex focused on handling Data Processing Instructions (Immediate and Register), which deal with several Arithmetic, Logic, Multiply, and Wide Move operations. He managed to design the necessary Bitwise Shifts for execution and ensured the correct PSTATE flags were set in the process.
 
-Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor
-incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis
-nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
-Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu
-fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in
-culpa qui officia deserunt mollit anim id est laborum.
+Jacky dealt with the implementation of the decoding and execution functions for the Load and Store instructions, overcoming the challenges of memory access and read operations while appropriately handling the 32-bit and 64-bit variants. He ensured the transfer addresses were properly computed by analysing all the modes for addressing. Arthur was responsible for managing Branch instructions, dealing with the subtle errors involving signed offsets, and updating the PC register properly to ensure correct execution. He recorded the flow and structure of our code and progress, contributing to the reflection and collaboration sections of our group report.
+
+Each group member then proceeded to test and debug their respective code by utilising the provided testsuite, verifying the accuracy of their code using gdb, and comparing it against the expected output files. While simultaneously facing segmentation fault errors, memory addressing challenges, and compatibility issues for 32-bit and 64-bit variants, we successfully configured the emulator to function in accordance with the testsuite. The last part of our work involved improving code flow and clarity, enhancing code compatibility.
+
+During the process, we have had a communal WhatsApp group to coordinate which bugs are most urgent and who is working on them. We then use git branches to ensure we always keep the current repository with clean, compileable code. Most merge conflicts have been trivial as we have been working on separate portions of the code and warning each other of changes. We then rebase our branches before committing. This has been working very well, as we usually have quite different work hours.
+
+Further, during the debugging phase, we also rewrote or made suggestions on how functions could be improved, either by making the code more concise or by adding assertions and extra error checking and reporting. This leads to constant improvement and iteration over our code and fruitful collaborative discussion on the best way to implement the functions.
+
+\section{Emulator Structure}
+
+Our emulator was designed to simulate the behaviour of an ARMv8 machine running in 64-bit execution mode. Thus, we have defined a global memory object and a global structure that tracks the state of all registers, including 31 general registers and 4 special registers. Their types adhere to the ARMv8-A architecture. Currently, we decided to keep all the code in the main emulator program, as the functions implemented are highly interdependent. This approach ensures proper maintenance and testing.
+
+The main function works by calling several helper functions, following the main structure of our emulator. Initially, the binary file is loaded, and all instructions from the input are read and stored in memory in little-endian format. Then, the execution pipeline begins by iterating over each instruction until the program reaches the Halt instruction. This linear process consists of fetching each instruction from memory, finding its instruction category based on the bits specified, and then further decoding and executing each instruction based on its category. Regarding the pipeline stages, all execution functions access the instruction fields and apply the changes accordingly to the global ARMv8 machine state. To ensure clarity, their corresponding calls lie within the generic decode and execute blocks, which call the appropriate function. Other helper functions for doing addition and subtraction, loading and storing, extracting bits, and sign extending were implemented to support reusability and ensure compatibility across different bit types. Finally, the program prints the state of all registers and memory as output.
+
+
+\subsection*{What we can reuse}
+
+When designing the assembler, we will be able to reuse the general file structure as well as key components such as instruction parsing, memory management, and instruction encoding/decoding. In fact, an assembler could adopt a symmetrical approach by managing it into three fundamental steps: parsing the instruction into tokens, disassembling it into a structure, and then decoding it into an instruction. Additionally, the errors we encountered during execution and the knowledge we acquired of the ARMv8 instruction set will be useful when handling errors and structuring the code of the assembler. Once the assembler has been built, we might use any IR that we do define to make the emulator code more concise.
+
+\section{Challenges left to face}
+
+The hardware collaboration may be an extra challenge, as we have been very effective at remote collaboration and asynchronous communication. We will have to adapt our style and have in-person meetings to work on the hardware and corresponding code together to facilitate testing.
+
+We are also adapting our coding collaboration and trying to implement more pair programming, as with our current approach of iteratively improving the code, a lot of design choices have to be explained several times. Further, errors take very long to debug so would be better to catch them earlier by coding together to start. We will try and implement this with the assembler portion.
+
+Overall, we are working well, but there is a slight lack of collaboration and group brainstorming, which we will have to improve upon. To mitigate these, we have scheduled an in-person meeting to evaluate our progress so far, ensure everyone is happy and productive and there are no issues blocking their progress, and put in place a schedule with regular meetings (twice a week) to keep track of progress and foster extra collaboration.
 
 \end{document}
