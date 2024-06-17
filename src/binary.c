@@ -20,7 +20,7 @@ uint32_t dp_reg_to_binary(dp_reg_instr instr){
 uint32_t dp_imm_to_binary(dp_imm_instr instr){
     return (instr.sf << 31) |
         (instr.opc << 29) |
-        (instr.op0 << 25) |
+        (instr.op0 << 26) |
         (instr.opi << 23) |
         (instr.operand << 5) |
         (instr.rd << 0);
@@ -31,7 +31,7 @@ uint32_t arith_instr_to_binary(arith_instr instr){
     if (instr.imm) {
         dp_imm_instr dp_instr;
         dp_instr.sf = instr.sf;
-        dp_instr.opc = (instr.add << 1) | (instr.flags); // 11 for adds
+        dp_instr.opc = (instr.sub << 1) | (instr.flags << 0); // 11 for subs
         dp_instr.opi = 2; //A = 010, WM = 101
         dp_instr.operand = (instr.operand.val.imm.lsl12 << 17) |
                            (instr.operand.val.imm.imm12 << 5) |
@@ -42,7 +42,7 @@ uint32_t arith_instr_to_binary(arith_instr instr){
     //  Convert to dp_reg
     dp_reg_instr dp_instr;
     dp_instr.sf = instr.sf;
-    dp_instr.opc = (instr.add << 1) | (instr.flags); // 11 for adds
+    dp_instr.opc = (instr.sub << 1) | (instr.flags << 0); // 11 for subs
     dp_instr.M = false; //0 for arithmetic
     dp_instr.op0 = 5; //Always = 101
     dp_instr.opr = 8 | (instr.operand.val.reg.shift_type << 1); // 1xx0 | SHIFT for Arithmetic

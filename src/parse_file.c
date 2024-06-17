@@ -43,6 +43,17 @@ uint32_t parseInstruction(context file_context) {
 
     return opc_fun(opc_str, rest_instr, file_context);
 }
+//Returns true if no errors
+static bool write_instr_little_edian(uint32_t instr, FILE *file){
+    int num_bytes = 4; uint8_t bytes[num_bytes];
+    bytes[0] = (instr >> 0) & 0xFF;
+    bytes[1] = (instr >> 8) & 0xFF;
+    bytes[2] = (instr >> 16) & 0xFF;
+    bytes[3] = (instr >> 24) & 0xFF;
+
+    // Write the bytes to the file in little-endian order
+    return (num_bytes == fwrite(bytes, sizeof(bytes[0]), num_bytes, file));
+}
 
 bool process_line(context file_context, FILE *outputFile) {
     // Check if line is a label
@@ -50,9 +61,9 @@ bool process_line(context file_context, FILE *outputFile) {
         return true; // Skip all labels
     }
     uint32_t binary_instr = parseInstruction(file_context);
-    int num_instr = 1;
-    int num_instr_w = fwrite(&binary_instr, sizeof(binary_instr), num_instr, outputFile);
-    if (num_instr != num_instr_w){
+    // Write little edian style
+    bool no_errors = write_instr_little_edian(binary_instr, outputFile);
+    if (!no_errors){
         error("Unable to write instruction to output file.", file_context);
     }
     return false;

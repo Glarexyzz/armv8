@@ -89,12 +89,13 @@ bool parse_logic_operand(char *str_operand, logic_operand_parse_result *result, 
   return true;
 }
 
-uint32_t logical_instr(char *opc, char * rest_instr, context file_context){
+uint32_t logical_instr(char *opc, char * str_instr, context file_context){
   int NUMARGS = 3; // rd, rn, opearand
   dp_reg_instr instr;
   logic_operand_parse_result parse_result;
   bool N;
   char** argArray;
+  char *rest_instr;
 
   //Set opcode and N
   if (strcmp(opc, "and") == 0) {instr.opc = 0; N = 0;} else
@@ -108,7 +109,7 @@ uint32_t logical_instr(char *opc, char * rest_instr, context file_context){
   {return 0;}
 
   // +1 for the null byte
-  int num_oversized = split_string(rest_instr, argArray, MAXREGSTRLEN + 1, NUMARGS);
+  int num_oversized = split_string(str_instr, argArray, MAXREGSTRLEN + 1, NUMARGS, &rest_instr);
   if (num_oversized > 0){
     char error_message[MAXERRORLEN];
     snprintf(error_message, MAXERRORLEN, "%d oversized register labels (Max length for registers: %d)", num_oversized, MAXREGSTRLEN);
@@ -136,16 +137,16 @@ uint32_t wide_move_instr(char *opc, char * rest_instr, context file_context){
 }
 
 // Applies to madd, msub, mul, mneg
-uint32_t multiply_instr(char *opc, char * rest_instr, context file_context){
+uint32_t multiply_instr(char *opc, char * instr_str, context file_context){
   // Initialise registers
   int NUMREGS = 4;
   dp_reg_instr instr;
   if (strcmp(opc, "mul") == 0 || strcmp(opc, "mneg") == 0) {instr.rd = 31; NUMREGS--;}
   //x is top bit or operand (ls 6) - 0 for m-add, 1 for m-sub - (do you negate the multiplication)
   if (strcmp(opc, "msub") == 0 || strcmp(opc, "mneg") == 0) instr.operand |= (1 << 6);
-  char *reg_strs[NUMREGS];
+  char *reg_strs[NUMREGS]; char *rest_instr;
 //  +1 for the null byte
-  bool no_errors = split_string_error_checking(rest_instr, reg_strs, MAXREGSTRLEN + 1, NUMREGS, file_context, true, true, true);
+  bool no_errors = split_string_error_checking(instr_str, reg_strs, MAXREGSTRLEN + 1, NUMREGS, &rest_instr, file_context, true, true, true);
   if (!no_errors) return 0; // reg_strs freed by error_checking func
 
   uint8_t reg_pointers[NUMREGS];

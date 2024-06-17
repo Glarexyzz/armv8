@@ -37,7 +37,7 @@ typedef struct {
 
 typedef struct {
     bool sf; //bit-width of registers - 0=32 (w), 1=64 (x-registers)
-    bool add; // true for add, false for sub
+    bool sub; // true for add, false for sub
     bool flags; // true to set flags false no set
     uint8_t rd;
     uint8_t rn;

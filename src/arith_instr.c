@@ -54,7 +54,8 @@ bool parse_operand(char *str_operand, instr_operand *instr, bool sf, context fil
   #define MAXLENTOKEN 16
   #define MAXIMMVAL (1 << 12) - 1 // 2^12 -1 is max
   char *op_tokens[MAXOPTOKENS];
-  bool no_errors = split_string_error_checking(str_operand, op_tokens, MAXLENTOKEN, MAXOPTOKENS, file_context, true, false, true);
+  char *rest_instr; // Will be NULL as checks nothing after
+  bool no_errors = split_string_error_checking(str_operand, op_tokens, MAXLENTOKEN, MAXOPTOKENS, &rest_instr, file_context, true, false, true);
   if (!no_errors) return no_errors; // propogate error state
   //  Check to see if immediate
   if (op_tokens[0][0] == '#'){
@@ -69,7 +70,8 @@ bool parse_operand(char *str_operand, instr_operand *instr, bool sf, context fil
       ERROR_AND_FREE_ON_COND(shift_type != LSL, "Only lsl allowed with Imm value", file_context, op_tokens, MAXOPTOKENS);
 
       uint16_t shift_val = 0; int max_shift_val = 12;
-      no_errors = imm_to_int(op_tokens[2], &shift_val, max_shift_val, file_context);
+      // Skip #
+      no_errors = imm_to_int(op_tokens[2]+1, &shift_val, max_shift_val, file_context);
       FREE_LIST(op_tokens, MAXOPTOKENS); // No longer needed
 
       if (shift_val == 12) instr->val.imm.lsl12 = true;
@@ -79,17 +81,17 @@ bool parse_operand(char *str_operand, instr_operand *instr, bool sf, context fil
     } else { instr->val.imm.lsl12 = false; FREE_LIST(op_tokens, MAXOPTOKENS); return true;}
   }
 //  Parse as register
-  bool *new_sf;
-  no_errors = parse_regs(&op_tokens[0], 1, new_sf, &instr->val.reg.rm, file_context);
+  bool new_sf;
+  no_errors = parse_regs(&op_tokens[0], 1, &new_sf, &instr->val.reg.rm, file_context);
   FREE_ON_COND(!no_errors, op_tokens, MAXOPTOKENS);
-  ERROR_AND_FREE_ON_COND(*new_sf != sf, "All registers must either be 32(w) or 64 (x)", file_context, op_tokens, MAXOPTOKENS);
+  ERROR_AND_FREE_ON_COND(new_sf != sf, "All registers must either be 32(w) or 64 (x)", file_context, op_tokens, MAXOPTOKENS);
 
   if (op_tokens[1] != NULL){ // Has a shift
     no_errors = get_shift(op_tokens[1],  &instr->val.reg.shift_type, file_context);
     FREE_ON_COND(!no_errors, op_tokens, MAXOPTOKENS);
 
     uint16_t temp_shift_val; int max_shift_val = (1 << (5 + (int) sf)) - 1; // 2^6 - 1 if sf true otherwise 2^5 - 1
-    no_errors = imm_to_int(op_tokens[2], &temp_shift_val, max_shift_val, file_context);
+    no_errors = imm_to_int(op_tokens[2] + 1, &temp_shift_val, max_shift_val, file_context);
     instr->val.reg.shift_amount = (uint8_t) temp_shift_val;
   } else {
     instr->val.reg.shift_amount = 0;
@@ -103,24 +105,20 @@ int initialise_arith_instr(char *opc, arith_instr *instr){
   // Set bool: add, flags, rd/rn if needed (for neg/cmp(n))
 //  Returns numregs expected (not including operand)
   int NUMREGS = 2;
-  if (strncmp(opc, "add", 3) == 0 || strncmp(opc, "neg", 3) == 0) instr->add = true;
-  else instr->add = false;
+  if (strncmp(opc, "add", 3) == 0 || strncmp(opc, "neg", 3) == 0) instr->sub = false;
+  else instr->sub = true;
 
   // check if opc is add, sub or neg for flags
   if (strstr("add sub neg", opc) != NULL) instr->flags = false;
   else instr->flags = true;
 
-  if (strncmp(opc, "neg", 3) == 0){
-    instr->rn = ZR; // 11111
-    NUMREGS--;
-  } else if (strncmp(opc, "cm", 2) == 0){
-    instr->rd = ZR;
+  if (strncmp(opc, "neg", 3) == 0 || strncmp(opc, "cm", 2) == 0){
     NUMREGS--;
   }
   return NUMREGS;
 }
 
-uint32_t arithmetic_instr(char *opc, char *rest_instr, context file_context){
+uint32_t arithmetic_instr(char *opc, char *str_instr, context file_context){
 // Applies to: add(s), sub(s), cmp/n - set flags rd is zr, neg(s) - rn is zr
 //  Two operand: <opcode> rd, rn, <operand> Applies to arithmetic and bit-logic operations.
 //  Operand can be either rm or #<imm> with optional{, <shift> #<amount> }
@@ -128,9 +126,10 @@ uint32_t arithmetic_instr(char *opc, char *rest_instr, context file_context){
   arith_instr instr;
   int NUMREGS = initialise_arith_instr(opc, &instr);
   char *reg_strs[NUMREGS];
+  char *rest_instr;
 //  Don't check nothing_after, do check right num and not_oversized
   bool no_errors =
-      split_string_error_checking(rest_instr, reg_strs, MAXREGSTRLEN + 1, NUMREGS, file_context, true, true, false);
+      split_string_error_checking(str_instr, reg_strs, MAXREGSTRLEN + 1, NUMREGS, &rest_instr, file_context, true, true, false);
   if (!no_errors) return 0;
 //  Parse the registers
   uint8_t reg_pointers[NUMREGS];
@@ -143,15 +142,23 @@ uint32_t arithmetic_instr(char *opc, char *rest_instr, context file_context){
 // Any writes to 11111 with |= no effect
   if (NUMREGS == 1) {
 // to set cmp/n 2nd register (first 11111)
-    instr.rn |= reg_pointers[0];
-  }
-  for (int i = 0; i < NUMREGS; i++){
-      switch (i) {
-        case 0: instr.rd |= reg_pointers[i]; break;
-        case 1: instr.rn |= reg_pointers[i]; break;
-        default: error("Unexpected number of registers", file_context); return 0; // Unexpected number of registers
-      }
+    if (strncmp(opc, "neg", 3) == 0){
+      instr.rn = ZR; // 11111
+      instr.rd = reg_pointers[0];
+    } else if (strncmp(opc, "cm", 2) == 0){
+      instr.rd = ZR;
+      instr.rn = reg_pointers[0];
     }
+
+  } else {
+    for (int i = 0; i < NUMREGS; i++){
+        switch (i) {
+          case 0: instr.rd = reg_pointers[i]; break;
+          case 1: instr.rn = reg_pointers[i]; break;
+          default: error("Unexpected number of registers", file_context); return 0; // Unexpected number of registers
+        }
+      }
+  }
 //  First two registers are right - just operand left
 //  Set the operand correctly - will check nothing after instruction
   no_errors = parse_operand(rest_instr, &instr.operand, instr.sf, file_context);
