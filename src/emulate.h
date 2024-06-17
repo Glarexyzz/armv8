@@ -1,21 +1,20 @@
 // Standard library header files
+#include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
-#include <stdbool.h>
 #include <string.h>
 
-// Define constants for memory, halt instruction
-#define MEMORY_SIZE (2 * 1024 * 1024) // 2MB of memory
+// Define macros: constants for memory, halt instruction, number of registers,
+// bit masks and byte/instruction sizes
+#define MEMORY_SIZE (2 * 1024 * 1024) // 2MB of Memory
 #define HALT_INSTRUCTION 0x8a000000   // Halt instruction
-#define NO_REGISTERS 31
-#define ZR_SP 31     // 11111
-
-#define INSTR_BYTES 4
-#define BYTE_SIZE 8
-#define MASK32 0xFFFFFFFFLL
-#define MASK8 0xFFLL
- 
+#define NO_REGISTERS 31               // Number of registers
+#define ZR_SP 31      // Zero or Stack Registers - when register value is 11111
+#define INSTR_BYTES 4 // Number of bytes per instruction
+#define BYTE_SIZE 8   // The size of a byte - 8 bits
+#define MASK32 0xFFFFFFFFLL // Mask bits to 32 bits
+#define MASK8 0xFFLL        // Mask bits to 8 bits
 
 // Prototypes for functions - code structure
 extern void binaryFileLoad(const char *inputFileName);
@@ -40,17 +39,16 @@ extern void printState(const char *outputFileName);
 */
 
 // Define structure for the ARMv8 machine state
-typedef struct ARMv8_State
-{
-    int64_t R[NO_REGISTERS]; // General Purpose Registers
-    uint64_t ZR;   // Zero Register
-    uint64_t PC;   // Program Counter
-    uint64_t SP;   // Stack Pointer
-    struct PSTATE  // Processor State
-    {
-        bool N;
-        bool Z;
-        bool C;
-        bool V;
-    } pstate;
+typedef struct ARMv8_State {
+  int64_t R[NO_REGISTERS]; // General Purpose Registers
+  uint64_t ZR;             // Zero Register
+  uint64_t PC;             // Program Counter
+  uint64_t SP;             // Stack Pointer
+  struct PSTATE            // Processor State
+  {
+    bool N;
+    bool Z;
+    bool C;
+    bool V;
+  } pstate;
 } ARMv8_State;
