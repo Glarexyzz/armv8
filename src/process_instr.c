@@ -274,7 +274,41 @@ uint32_t sdt_instr(char *opc, char * rest_instr, context file_context){
   sdt instr;
   sdt_type sdt_type;
 
-  // TODO - the instructions
+  // Setup rt(Target Register)
+  const char delim[] = " ,x[";
+  char *saveptr;
+  char * fsttoken = strtok_r(rest_instr, delim, saveptr); //contains RT
+  // Need to wait for sdt_type confirmed thus to store RT into instr
+  if(fsttoken[0] == "w"){
+    fsttoken++;
+    bool sf = 0;
+  }
+  else {
+    bool sf = 1;
+  }
+  uint8_t rt = atoi(fsttoken);
+
+  // Check if the next token is literal or not
+  char *sndtoken = strtok_r(NULL, delim, saveptr);
+  if(sndtoken != "0" && atoi(sndtoken) == 0) {
+    sdt_type = LL;
+  }
+
+  // Load:
+  if(strcmp(opc, "ldr") == 0) {
+
+  }
+
+  // Unsigned Immediate Offset:
+  
+
+  // Pre-Indexed:
+
+  // Post-Indexed:
+
+  // Register:
+
+  // Literal(Load-only):
 
   // Return binary representation as uint32_t
   return sdt_to_binary(instr, sdt_type);
