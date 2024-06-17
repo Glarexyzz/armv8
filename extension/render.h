@@ -1,5 +1,6 @@
-#include <stdlib.h>
 #include "snake.h"
+#include "food.h"
+#include "ncurses.h"
+#include "game.h"
 
-void render_snake(snake snake);
-void render_food(snake snake);
+void render(game * game);
