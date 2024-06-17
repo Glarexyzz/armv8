@@ -31,7 +31,7 @@ int main(int argc, char **argv) {
   const char *output_location = argv[2];
 
   //  Append .bin to file
-  const char *extension = ".bin";
+  const char *extension = ""; // no .bin for tests
   char *output_file_name = (char *)malloc(strlen(output_location) +  strlen(extension) + 1);
   strcpy(output_file_name, output_location); strcat(output_file_name, extension);
   FILE *output_file = fopen(output_file_name, "wb");
