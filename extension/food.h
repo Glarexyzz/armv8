@@ -1,6 +1,11 @@
+#ifndef FOOD
+#define FOOD
+
 #include "utils.h"
 
 typedef struct food {
     vector pos;
-    int length_gain;
+    int score;
 } food;
+
+#endif /* FOOD */

@@ -17,21 +17,26 @@ void free_snake (snake * snake) {
     free(snake);
 }
 
-snake * new_snake (vector head_pos) {
+snake * new_snake (vector * head_pos) {
     snake * n_snake;
     n_snake = malloc(sizeof(snake));
     n_snake->head = new_snake_segment(head_pos);
+    return n_snake;
 }
 
-snake_segment * new_snake_segment(vector pos) {
+snake_segment * new_snake_segment(vector * pos) {
     snake_segment * new_segment;
     new_segment = malloc(sizeof(snake_segment));
-    new_segment->pos = pos;
+    new_segment->pos = *pos;
     new_segment->next = NULL;
     return new_segment;
 }
 
-void grow_snake_from_head(snake * snake, snake_segment * new_segment);
+void grow_snake_from_head(snake * snake, snake_segment * new_segment) {
+    new_segment->next = snake->head;
+    snake->head = new_segment;
+    snake->length++;
+}
 
 //Should probably check if there is at least one segment
 void remove_tail(snake * snake) {
@@ -44,4 +49,5 @@ void remove_tail(snake * snake) {
     }
     free(last);
     prev_last->next = NULL;
+    snake->length--;
 }

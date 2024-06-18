@@ -1,5 +1,10 @@
 {
     "files.associations": {
-        "ncurses.h": "c"
-    }
+        "ncurses.h": "c",
+        "chrono": "c",
+        "vector": "c",
+        "game.h": "c",
+        "utils.h": "c"
+    },
+    "C_Cpp.errorSquiggles": "enabled"
 }
