@@ -36,7 +36,7 @@ uint32_t parseInstruction(context file_context) {
     strncpy(line_copy, file_context->cur_line, MAXLINELEN); //strtok_r edits array
     opc_str = strtok_r(line_copy, " ", &saveptr);
     instr_processor opc_fun = get_instr_processor(opc_str);
-    if (opc_fun == NULL) error("Invalid op-code!", file_context);
+    ERROR_ON_COND(opc_fun == NULL, "Invalid op-code!", file_context);
 
     rest_instr = strtok_r(NULL, "", &saveptr);
     rest_instr = (rest_instr == NULL) ? "" : rest_instr;

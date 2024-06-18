@@ -7,9 +7,10 @@
 
 #include <stdbool.h>
 
-#define MAXLINELEN 1024
-#define MAXERRORLEN 128
+#define MAXLINELEN 256
+#define MAXERRORLEN 256
 #define ZR 31
+#define MAXREGSTRLEN 3 // xNN or wzr - so always max 3
 
 // Error checking MACROS
 #define ERROR_AND_FREE_ON_COND(condition, error_message, file_context, list, num_list) \

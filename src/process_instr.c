@@ -5,52 +5,13 @@
 #include "process_instr.h"
 #include "globals.h"
 #include "utils.h"
+#include "parse_utils.h"
 #include "sym_tab.h"
-#define MAXREGSTRLEN 3 // xNN or wzr - so always max 3
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 #include "binary.h"
-
-/* SRAP FOR NOW
-typedef struct {
-  uint8_t hw; // top 2 bits
-  uint16_t imm16;
-} wide_operand;
-
-typedef struct {
-  bool sh;
-  uint16_t imm12;
-  uint8_t rn;
-} arith_imm_operand;
-
-typedef union {
-  wide_operand w;
-  arith_imm_operand a;
-} dp_imm_operand;
-
-//  Assumes well formatted dp reg
-uint32_t dp_imm_to_binary(dp_imm_instr instr){
-//  Based on opi return different
-    uint32_t operand = 0;
-    if (instr.opi == 2){
-      operand |= (instr.operand.a.sh << 17);
-      operand |= (instr.operand.a.imm12 << 5);
-      operand |= (instr.operand.a.rn);
-    } else {
-      operand |= (instr.operand.w.hw << 17);
-      operand |= (instr.operand.w.imm16 << 0);
-    }
-  return (instr.sf << 31) |
-    (instr.opc << 29) |
-    (instr.op0 << 25) |
-    (operand << 5) |
-    (instr.rd << 0);
-}
-*/
-
-
 
 typedef struct {
   uint8_t hw; // top 2 bits
@@ -77,8 +38,8 @@ bool parse_logic_operand(char *str_operand, logic_operand_parse_result *result, 
   char* shiftType = strtok(NULL, ", #");
   if (shiftType == NULL) {
     // operand is just rm, so shift rm by 0
-    result->shType == 0;
-    result->operand == 0;
+    result->shType = 0;
+    result->operand = 0;
   } else {
     if (strcmp(shiftType, "lsl")) {result->shType = 0;} else
     if (strcmp(shiftType, "lsr")) {result->shType = 1;} else
@@ -90,12 +51,12 @@ bool parse_logic_operand(char *str_operand, logic_operand_parse_result *result, 
 }
 
 uint32_t logical_instr(char *opc, char * str_instr, context file_context){
-  int NUMARGS = 3; // rd, rn, opearand
+  int NUMREGS = 2; // rd, rn - get operand as rest of str
   dp_reg_instr instr;
   logic_operand_parse_result parse_result;
   bool N;
-  char** argArray;
-  char *rest_instr;
+  char *reg_strs[NUMREGS];
+  char *operand;
 
   //Set opcode and N
   if (strcmp(opc, "and") == 0) {instr.opc = 0; N = 0;} else
@@ -108,30 +69,39 @@ uint32_t logical_instr(char *opc, char * str_instr, context file_context){
   if (strcmp(opc, "bics") == 0) {instr.opc = 3; N = 1;} else
   {return 0;}
 
-  // +1 for the null byte
-  int num_oversized = split_string(str_instr, argArray, MAXREGSTRLEN + 1, NUMARGS, &rest_instr);
-  if (num_oversized > 0){
-    char error_message[MAXERRORLEN];
-    snprintf(error_message, MAXERRORLEN, "%d oversized register labels (Max length for registers: %d)", num_oversized, MAXREGSTRLEN);
-    error(error_message, file_context);
-  }
+  // +1 for the null byte, check no oversized and right number
+  bool no_errors =
+      split_string_error_checking(str_instr, reg_strs, MAXREGSTRLEN + 1, NUMREGS, &operand, file_context, true, true, false);
+  if (!no_errors) return 0;
+  //  Parse the registers
+  uint8_t reg_pointers[NUMREGS];
+  no_errors = parse_regs(reg_strs, NUMREGS, &instr.sf, reg_pointers, file_context);
+  FREE_LIST(reg_strs, NUMREGS);
+  if (!no_errors) return 0;
 
-  instr.rd = get_reg_num(argArray[0], file_context);
-  instr.rn = get_reg_num(argArray[1], file_context);
-  char* operand = argArray[2];
+  instr.rd = reg_pointers[0];
+  instr.rn = reg_pointers[1];
 
-  bool parse_success = parse_logic_operand(operand, &parse_result, file_context);
+  no_errors = parse_logic_operand(operand, &parse_result, file_context);
   instr.opr = parse_result.shType << 1 | N;
   instr.rm = parse_result.rm;
   instr.operand = parse_result.operand;
 
   instr.M = 0;
-  instr.op0 = 6; // ALWAYS 101
-  instr.sf = argArray[0][0] == 'x' ? 1 : 0;
+  instr.op0 = 5; // ALWAYS 101
 
   return dp_reg_to_binary(instr);
 }
 
+/*
+typedef struct {
+  uint8_t hw; // top 2 bits
+  uint16_t imm16;
+} wide_operand;
+
+operand |= (instr.operand.w.hw << 17);
+operand |= (instr.operand.w.imm16 << 0);
+*/
 uint32_t wide_move_instr(char *opc, char * rest_instr, context file_context){
     return 0;
 }

@@ -45,7 +45,29 @@ typedef struct {
 
 typedef enum {LSL = 0, LSR = 1, ASR = 2, ROR = 3} shift_enum;
 
+/*
+    Add & Logic data structures
+ */
+typedef struct {
+    uint16_t imm12;
+    bool lsl12; //Only LSL 12 as option or not
+} imm_operand;
 
+typedef struct {
+    uint8_t rm;
+    shift_enum shift_type;
+    uint8_t shift_amount;
+} reg_operand;
+
+typedef union {
+    imm_operand imm;
+    reg_operand reg;
+} operand_union;
+
+typedef struct {
+    operand_union val;
+    bool imm; // True if imm_operand, false for reg
+} instr_operand;
 
 /*
   Loads and Stores structure - Single Data Transfer, Load Literal
