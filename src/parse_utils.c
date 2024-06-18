@@ -126,12 +126,13 @@ bool parse_regs(char **reg_strs, int num_regs, bool *sf, uint8_t *regs, context 
 
 bool imm_to_int(char *imm_str, uint16_t *imm_res, int max, context file_context){
   // Check valid number
-  if (!isfunc_str(imm_str, &isdigit)){
-    error("Immediate value must be a digit!!", file_context);
-    return false;
-  }
-  *imm_res = atoi(imm_str);
-  //  Check less than 2^12
+  int base = 0; // Checks both int and hex
+  char *endptr;
+  long val = strtol(imm_str, &endptr, base);
+  *imm_res = (uint16_t) val;
+  ERROR_ON_COND(*endptr != '\0', "Invalid characters found", file_context);
+  ERROR_ON_COND(endptr == imm_str, "No digits found!!", file_context);
+  //  Check less than max val
   if (*imm_res > max){
     char error_message[MAXERRORLEN];
     snprintf(error_message, MAXERRORLEN, "Immediate value must be less than %d", max);
