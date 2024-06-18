@@ -121,10 +121,8 @@ int split_string(const char *s, char **token_array, int max_size, int max_tokens
         }
     }
 
-    // Indicate end of tokens in the array
-    if (j < max_tokens) {
-        token_array[j] = NULL;
-    }
+    // Indicate end of tokens in the array - make all of them NULL to avoid double free errors
+    for (; j < max_tokens; j++) token_array[j] = NULL;
 
     // Point rest_instr to the rest of the input string if any
     if (saveptr != NULL && *saveptr != '\0') {
