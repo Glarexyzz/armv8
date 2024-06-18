@@ -42,6 +42,7 @@ bool parse_operand(char *str_operand, instr_operand *instr, bool sf, context fil
   }
 //  Parse as register
   bool new_sf;
+  instr->imm = false;
   no_errors = parse_regs(&op_tokens[0], 1, &new_sf, &instr->val.reg.rm, file_context);
   FREE_ON_COND(!no_errors, op_tokens, MAXOPTOKENS);
   ERROR_AND_FREE_ON_COND(new_sf != sf, "All registers must either be 32(w) or 64 (x)", file_context, op_tokens, MAXOPTOKENS);

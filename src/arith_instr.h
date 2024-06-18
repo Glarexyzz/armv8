@@ -18,8 +18,7 @@ typedef struct {
     bool flags; // true to set flags false no set
     uint8_t rd;
     uint8_t rn;
-    bool imm; // if true then dp_imm_instr (no rm just imm12) - false then dp_reg_instr
-    instr_operand operand;
+    instr_operand operand; // contains imm, val. if true then dp_imm_instr (no rm just imm12) - false then dp_reg_instr
 } arith_instr;
 
 uint32_t arithmetic_instr(char *opc, char * rest_instr, context file_context);

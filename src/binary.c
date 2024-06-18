@@ -28,15 +28,16 @@ uint32_t dp_imm_to_binary(dp_imm_instr instr){
 
 uint32_t arith_instr_to_binary(arith_instr instr){
     //  Convert to dp_imm or dp_reg then use those helper functions
-    if (instr.imm) {
+    if (instr.operand.imm) {
         dp_imm_instr dp_instr;
         dp_instr.sf = instr.sf;
         dp_instr.opc = (instr.sub << 1) | (instr.flags << 0); // 11 for subs
+        dp_instr.op0 = 4; // 100
         dp_instr.opi = 2; //A = 010, WM = 101
         dp_instr.operand = (instr.operand.val.imm.lsl12 << 17) |
                            (instr.operand.val.imm.imm12 << 5) |
                            (instr.rn << 0);
-        dp_instr.op0 = 4; // 100
+        dp_instr.rd = instr.rd;
         return dp_imm_to_binary(dp_instr);
     }
     //  Convert to dp_reg
