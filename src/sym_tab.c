@@ -76,17 +76,18 @@ void show_symtab( FILE *out )
 // Logs an error if a label is duplicated, label is not only a-zA-Z
 bool build_symtab(context file_context, FILE *_) {
     // Check if line is a label
-    if (file_context->cur_line[strlen(file_context->cur_line)-1] == ':') {
+    if (strchr(file_context->cur_line, ':') != NULL) {
+    //if (file_context->cur_line[strlen(file_context->cur_line)-1] == ':') {
         // Remove colon
         file_context->cur_line[strlen(file_context->cur_line)-1] = '\0';
         if (get_sym(file_context->cur_line) != -1) {
             error("Error: Duplicate label", file_context);
             return true;
         }
-        if (!isfunc_str(file_context->cur_line, &isalpha)){
+        /*if (!isfunc_str(file_context->cur_line, &isalpha)){
             error("Error: Label must only contain a-zA-Z", file_context);
             return true;
-        }
+        }*/
         // Add symbol to symbol table
         add_sym(file_context->cur_line, file_context->prog_lineno);
         return true;

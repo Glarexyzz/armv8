@@ -254,17 +254,17 @@ uint32_t sdt_instr(char *opc, char * rest_instr, context file_context){
   char *saveptr;
   
   // First token contains RT
-  char * fsttoken = strtok_r(rest_instr, delim, saveptr); 
+  char * fsttoken = strtok_r(rest_instr, delim, &saveptr); 
   sf = (fsttoken[0] == 'w') ? 0 : 1; 
   rt = (sf == 0) ? atoi(++fsttoken) : atoi(fsttoken); //remove prefix "w"
 
   // Second token records xn or literal
-  char *sndtoken = strtok_r(NULL, delim, saveptr);
+  char *sndtoken = strtok_r(NULL, delim, &saveptr);
   int sndlen = strlen(sndtoken);
-  sndtoken[sndlen - 1] = (sndtoken[sndlen - 1] == ']') ? "\0" : sndtoken[sndlen - 1];
+  sndtoken[sndlen - 1] = (sndtoken[sndlen - 1] == ']') ? '\0' : sndtoken[sndlen - 1];
 
   // Check if the second token is literal or xn
-  if (sndtoken != '0' && atoi(sndtoken) == 0) {
+  if (sndtoken[0] != '0' && atoi(sndtoken) == 0) {
     // Load Literal
     sdt_type = LL;
     int32_t simm19;
@@ -289,8 +289,8 @@ uint32_t sdt_instr(char *opc, char * rest_instr, context file_context){
     int16_t offset;
 
     // Third token records the offset value
-    char *trdtoken = strtok_r(NULL, delim, saveptr);
-    int trdlen = strlen(trdtoken);
+    char *trdtoken = strtok_r(NULL, delim, &saveptr);
+    
 
     // Zero Unsigned Offset
     if (trdtoken == NULL) {
@@ -301,18 +301,19 @@ uint32_t sdt_instr(char *opc, char * rest_instr, context file_context){
     else if (trdtoken[0] == '#') {
       u = 0;
       trdtoken++;
+      int trdlen = strlen(trdtoken);
 
       switch (trdtoken[trdlen - 1]) {
         // Unsigned Offset
         case ']':
           u = 1; // change it back
-          trdtoken[trdlen - 1] = "\0"; // get rid of "]" so only the immValue left
+          trdtoken[trdlen - 1] = '\0'; // get rid of "]" so only the immValue left
           offset = (sf == 1) ? (atoi(trdtoken))/8 : (atoi(trdtoken))/4 ;
           break;
 
         // Pre-Indexed
         case '!':
-          trdtoken[trdlen - 2] = "\0"; // get rid of "]!" so only the simmValue left
+          trdtoken[trdlen - 2] = '\0'; // get rid of "]!" so only the simmValue left
           offset = (0 << 11) |
             (atoi(trdtoken) << 2) |
             3;
@@ -329,9 +330,10 @@ uint32_t sdt_instr(char *opc, char * rest_instr, context file_context){
     // Register Offset
     else {
       u = 0;
+      int trdlen = strlen(trdtoken);
 
       // Add Register into the offset
-      trdtoken[trdlen - 1] = "\0"; // get rid of "]" so only the register number left
+      trdtoken[trdlen - 1] = '\0'; // get rid of "]" so only the register number left
       offset = (1 << 11) |
         (atoi(trdtoken) << 6) |
         26;
@@ -350,6 +352,7 @@ uint32_t sdt_instr(char *opc, char * rest_instr, context file_context){
   }
 
   // Return binary representation as uint32_t
+  printf("%d", sdt_type);
   return sdt_to_binary(instr, sdt_type);
 }
 
@@ -360,13 +363,14 @@ uint32_t directive_instr(char *opc, char * rest_instr, context file_context){
 
   // True -> Hexadecimal Value; False -> Decimal Value
   int32_t dirvalue = (rest_instr[1] == 'x') ? strtol(rest_instr, NULL, 16) : atoi(rest_instr);
-  
-  
-  int *currentaddress = &(file_context->prog_lineno); // is this the current address?
-  // Set the address of the current instruction to 4 bytes
-  currentaddress = malloc(sizeof(int32_t)); 
 
+  // create the address of the current instruction to 4 bytes
+  //int *newaddress = malloc(sizeof(int32_t)); 
+  //*newaddress = dirvalue;
+  
   // update the assembly file of the value at the current address
-  sprintf(file_context->cur_line, "%ld", dirvalue); 
+  //sprintf(file_context->cur_line, "%d", dirvalue); 
+  //add_sym(file_context->cur_line, newaddress);
+
   return dirvalue;
 }

@@ -34,7 +34,9 @@ uint32_t parseInstruction(context file_context) {
     char *rest_instr;
     char line_copy[MAXLINELEN];
     strncpy(line_copy, file_context->cur_line, MAXLINELEN); //strtok_r edits array
+    printf("%s\n", line_copy);
     opc_str = strtok_r(line_copy, " ", &saveptr);
+    printf("%s\n", opc_str);
     instr_processor opc_fun = get_instr_processor(opc_str);
     ERROR_ON_COND(opc_fun == NULL, "Invalid op-code!", file_context);
 
@@ -57,7 +59,7 @@ static bool write_instr_little_edian(uint32_t instr, FILE *file){
 
 bool process_line(context file_context, FILE *outputFile) {
     // Check if line is a label
-    if (file_context->cur_line[strlen(file_context->cur_line)-1] == ':') {
+    if (strchr(file_context->cur_line, ':') != NULL) {
         return true; // Skip all labels
     }
     uint32_t binary_instr = parseInstruction(file_context);
