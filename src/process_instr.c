@@ -37,9 +37,9 @@ typedef struct
 bool parse_logic_operand(char *str_operand, logic_operand_parse_result *result, context file_context)
 {
   // str_operand of form rm or rm{, shift #amount} - the brackets are to show it's optional not actually in code.
-  result->rm = get_reg_num(strtok(str_operand, ", #"), file_context);
+  result->rm = get_reg_num(strtok(str_operand, ", "), file_context);
 
-  char *shiftType = strtok(NULL, ", #");
+  char *shiftType = strtok(NULL, " #");
   if (shiftType == NULL)
   {
     // operand is just rm, so shift rm by 0
@@ -48,25 +48,33 @@ bool parse_logic_operand(char *str_operand, logic_operand_parse_result *result, 
   }
   else
   {
-    if (strcmp(shiftType, "lsl"))
+    if (strcmp(shiftType, "lsl") == 0)
     {
       result->shType = 0;
     }
-    else if (strcmp(shiftType, "lsr"))
+    else if (strcmp(shiftType, "lsr") == 0)
     {
       result->shType = 1;
     }
-    else if (strcmp(shiftType, "asr"))
+    else if (strcmp(shiftType, "asr") == 0)
     {
       result->shType = 2;
     }
-    else if (strcmp(shiftType, "ror"))
+    else if (strcmp(shiftType, "ror") == 0)
     {
       result->shType = 3;
+    } 
+    char *shiftImm = strtok(NULL, ", #");
+    if (shiftImm[0] == '0' && shiftImm[1] == 'x')
+    {
+      result->operand = strtol(shiftImm, NULL, 16);
     }
     else
-      result->operand = (uint8_t)atoi(strtok(NULL, ", #"));
+    {
+      result->operand = atoi(shiftImm);
+    }
   }
+
   return true;
 }
 
@@ -78,6 +86,14 @@ uint32_t logical_instr(char *opc, char *str_instr, context file_context)
   bool N;
   char *reg_strs[NUMREGS];
   char *operand;
+
+  // Check for tst
+  if (strcmp(opc, "tst") == 0)
+  {
+    NUMREGS--;
+    instr.opc = 3;
+    N = 0;
+  }
 
   // Set opcode and N
   if (strcmp(opc, "and") == 0)
@@ -120,10 +136,6 @@ uint32_t logical_instr(char *opc, char *str_instr, context file_context)
     instr.opc = 3;
     N = 1;
   }
-  else
-  {
-    return 0;
-  }
 
   // +1 for the null byte, check no oversized and right number
   bool no_errors =
@@ -137,8 +149,14 @@ uint32_t logical_instr(char *opc, char *str_instr, context file_context)
   if (!no_errors)
     return 0;
 
-  instr.rd = reg_pointers[0];
-  instr.rn = reg_pointers[1];
+  if (NUMREGS == 1)
+  {
+    instr.rd = ZR;
+    instr.rn = reg_pointers[0];
+  } else {
+    instr.rd = reg_pointers[0];
+    instr.rn = reg_pointers[1];
+  }
 
   no_errors = parse_logic_operand(operand, &parse_result, file_context);
   instr.opr = parse_result.shType << 1 | N;
@@ -146,7 +164,7 @@ uint32_t logical_instr(char *opc, char *str_instr, context file_context)
   instr.operand = parse_result.operand;
 
   instr.M = 0;
-  instr.op0 = 5; // ALWAYS 101
+  instr.op0 = 5; // always 101
 
   return dp_reg_to_binary(instr);
 }
@@ -167,7 +185,7 @@ typedef struct wide_mov
 } wide_mov;
 
 // Converts a branch instruction into a binary number
-/*uint32_t wide_mov_to_binary(wide_mov instr)
+uint32_t wide_mov_to_binary(wide_mov instr)
 {
   return (instr.sf << 31) |
          (instr.opc << 29) |
@@ -176,16 +194,6 @@ typedef struct wide_mov
          (instr.hw << 21) |
          (instr.imm16 << 5) |
          (instr.rd << 0);
-}*/
-uint32_t wide_mov_to_binary(wide_mov instr)
-{
-  return ((instr.sf & 0x1) << 31) |
-         ((instr.opc & 0x3) << 29) |
-         ((instr.wide_mov_mid & 0x7) << 26) |
-         ((instr.opi & 0x7) << 23) |
-         ((instr.hw & 0x3) << 21) |
-         ((instr.imm16 & 0xFFFF) << 5) |
-         ((instr.rd & 0x1F) << 0);
 }
 
 // Wide move parser
@@ -212,7 +220,6 @@ bool parse_wide_move_operand(char *str_operand, wide_operand *result, context fi
 
   // Compute and check possible shift
   char *shiftType = strtok(NULL, " #");
-  // printf("%s\n", shiftType);
   if (shiftType == NULL)
   {
     result->hw = 0;
@@ -285,11 +292,11 @@ uint32_t wide_move_instr(char *opc, char *rest_instr, context file_context)
 
   // Get the remaining part of the instruction
   str = strtok(NULL, "\0");
-  /*if (str == NULL)
+  if (str == NULL)
   {
     fprintf(stderr, "No operand found.\n");
     return EXIT_FAILURE;
-  }*/
+  }
 
   bool no_errors = parse_wide_move_operand(str, &parse_result, file_context);
 
@@ -311,12 +318,13 @@ uint32_t multiply_instr(char *opc, char *instr_str, context file_context)
   dp_reg_instr instr;
   if (strcmp(opc, "mul") == 0 || strcmp(opc, "mneg") == 0)
   {
-    instr.rd = 31;
+    instr.operand = 31;
     NUMREGS--;
   }
   // x is top bit or operand (ls 6) - 0 for m-add, 1 for m-sub - (do you negate the multiplication)
-  if (strcmp(opc, "msub") == 0 || strcmp(opc, "mneg") == 0)
-    instr.operand |= (1 << 6);
+  if (strcmp(opc, "msub") == 0 || strcmp(opc, "mneg") == 0) {
+    instr.operand |= (1 << 5);
+  }
   char *reg_strs[NUMREGS];
   char *rest_instr;
   //  +1 for the null byte
@@ -337,16 +345,20 @@ uint32_t multiply_instr(char *opc, char *instr_str, context file_context)
     switch (i)
     {
     case 0:
-      instr.rm = reg_pointers[i];
+     // instr.rm = reg_pointers[i];
+      instr.rd = reg_pointers[i];
       break;
     case 1:
-      instr.operand |= reg_pointers[i];
-      break;
-    case 2:
+      //instr.operand |= reg_pointers[i];
       instr.rn = reg_pointers[i];
       break;
+    case 2:
+      //instr.rn = reg_pointers[i];
+      instr.rm = reg_pointers[i];
+      break;
     case 3:
-      instr.rd = reg_pointers[i];
+      //instr.rd = reg_pointers[i];
+      instr.operand |= reg_pointers[i];
       break;
     default:
       error("Unexpected number of registers", file_context);
@@ -356,9 +368,13 @@ uint32_t multiply_instr(char *opc, char *instr_str, context file_context)
   //  dp_instr finally correctly formatted and valid
   instr.M = 1;
   instr.op0 = 5;
-  //  Return binary representation as uint32_t
+  instr.opc = 0;
+  instr.opr = 8;
+
+  // Return binary representation as uint32_t
   return dp_reg_to_binary(instr);
 }
+
 /*
   Branch structure
 */
@@ -478,6 +494,9 @@ uint32_t branch_instr(char *opc, char *rest_instr, context file_context)
   return branch_to_binary(instr, b_type);
 }
 
+/*
+  Loads and Stores
+*/
 // Breaks down a Single Data Transfer instruction
 uint32_t sdt_instr(char *opc, char *rest_instr, context file_context)
 {
@@ -496,7 +515,7 @@ uint32_t sdt_instr(char *opc, char *rest_instr, context file_context)
   // First token contains RT
   char *fsttoken = strtok_r(rest_instr, delim, &saveptr);
   sf = (fsttoken[0] == 'w') ? 0 : 1;
-  rt = (sf == 0) ? atoi(++fsttoken) : atoi(fsttoken); // remove prefix "w"
+  rt = (sf == 0) ? atoi(++fsttoken) : atoi(fsttoken); // remove prefix "w" or "x"
 
   // Second token records xn or literal
   char *sndtoken = strtok_r(NULL, delim, &saveptr);
@@ -522,6 +541,9 @@ uint32_t sdt_instr(char *opc, char *rest_instr, context file_context)
     instr.ll.simm19 = simm19;
     instr.ll.rt = rt;
   }
+
+// 11111001010000000000000000100011 - exp
+// 11111000010000000000010000100011 - act
 
   // SDT
   else

@@ -11,6 +11,7 @@
 #include "sym_tab.h"
 #include "process_instr.h"
 #include "parse_file.h"
+#include "arith_instr.h"
 
 #define PRINTONFAIL(c) {}
 int main(int argc, char **argv) {
