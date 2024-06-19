@@ -87,13 +87,11 @@ uint32_t logical_instr(char *opc, char *str_instr, context file_context)
   char *reg_strs[NUMREGS];
   char *operand;
 
-  // Check for tst
-  if (strcmp(opc, "tst") == 0)
+  // Check for tst, mvn for number of registers
+  if (strcmp(opc, "tst") == 0 || strcmp(opc, "mvn") == 0 || strcmp(opc, "mov") == 0)
   {
     NUMREGS--;
-    instr.opc = 3;
-    N = 0;
-  }
+  } 
 
   // Set opcode and N
   if (strcmp(opc, "and") == 0)
@@ -106,12 +104,12 @@ uint32_t logical_instr(char *opc, char *str_instr, context file_context)
     instr.opc = 0;
     N = 1;
   }
-  else if (strcmp(opc, "orr") == 0)
+  else if (strcmp(opc, "orr") == 0 || strcmp(opc, "mov") == 0)
   {
     instr.opc = 1;
     N = 0;
   }
-  else if (strcmp(opc, "orn") == 0)
+  else if (strcmp(opc, "orn") == 0 || strcmp(opc, "mvn") == 0)
   {
     instr.opc = 1;
     N = 1;
@@ -126,7 +124,7 @@ uint32_t logical_instr(char *opc, char *str_instr, context file_context)
     instr.opc = 2;
     N = 1;
   }
-  else if (strcmp(opc, "ands") == 0)
+  else if (strcmp(opc, "ands") == 0 || strcmp(opc, "tst") == 0)
   {
     instr.opc = 3;
     N = 0;
@@ -151,8 +149,13 @@ uint32_t logical_instr(char *opc, char *str_instr, context file_context)
 
   if (NUMREGS == 1)
   {
-    instr.rd = ZR;
-    instr.rn = reg_pointers[0];
+    if(strcmp(opc, "tst") == 0) {
+      instr.rd = ZR;
+      instr.rn = reg_pointers[0];
+    } else {
+      instr.rd = reg_pointers[0];
+      instr.rn = ZR;
+    }
   } else {
     instr.rd = reg_pointers[0];
     instr.rn = reg_pointers[1];
@@ -514,6 +517,7 @@ uint32_t sdt_instr(char *opc, char *rest_instr, context file_context)
 
   // First token contains RT
   char *fsttoken = strtok_r(rest_instr, delim, &saveptr);
+  printf("fsttoken: %s.\n", fsttoken);
   sf = (fsttoken[0] == 'w') ? 0 : 1;
   rt = (sf == 0) ? atoi(++fsttoken) : atoi(fsttoken); // remove prefix "w" or "x"
 
@@ -522,6 +526,7 @@ uint32_t sdt_instr(char *opc, char *rest_instr, context file_context)
   int sndlen = strlen(sndtoken);
   sndtoken[sndlen - 1] = (sndtoken[sndlen - 1] == ']') ? '\0' : sndtoken[sndlen - 1];
 
+  printf("sndtoken: %s.\n", sndtoken);
   // Check if the second token is literal or xn
   if (sndtoken[0] != '0' && atoi(sndtoken) == 0)
   {
@@ -530,8 +535,13 @@ uint32_t sdt_instr(char *opc, char *rest_instr, context file_context)
     int32_t simm19;
 
     // True -> Immediate Address Literal ; False -> Label Literal
-    int32_t literaladdress = (sndtoken[0] == '#') ? atoi(++sndtoken) : get_sym(sndtoken);
+    uint32_t literaladdress = (sndtoken[0] == '#') ? atoi(++sndtoken) : get_sym(sndtoken);
+    printf("litaddress: %d\n", literaladdress);
+    printf("file context: %d\n", file_context->prog_lineno);
     simm19 = literaladdress - file_context->prog_lineno;
+    if (simm19 & (1 << 18)) {
+        simm19 |= ~((1 << 19) - 1);
+    }
     assert(abs(simm19) < (1 << 20)); // address of literal within 1MB of the current address
 
     // Store values into the instruction structure
@@ -542,9 +552,6 @@ uint32_t sdt_instr(char *opc, char *rest_instr, context file_context)
     instr.ll.rt = rt;
   }
 
-// 11111001010000000000000000100011 - exp
-// 11111000010000000000010000100011 - act
-
   // SDT
   else
   {
@@ -554,6 +561,7 @@ uint32_t sdt_instr(char *opc, char *rest_instr, context file_context)
 
     // Third token records the offset value
     char *trdtoken = strtok_r(NULL, delim, &saveptr);
+    printf("trdtoken: %s.\n", trdtoken);
 
     // Zero Unsigned Offset
     if (trdtoken == NULL)
@@ -580,15 +588,13 @@ uint32_t sdt_instr(char *opc, char *rest_instr, context file_context)
       // Pre-Indexed
       case '!':
         trdtoken[trdlen - 2] = '\0'; // get rid of "]!" so only the simmValue left
-        offset = (0 << 11) |
-                 (atoi(trdtoken) << 2) |
+        offset = (atoi(trdtoken) << 2) |
                  3;
         break;
 
       // Post-Indexed
       default:
-        offset = (0 << 11) |
-                 (atoi(trdtoken) << 2) |
+        offset =(atoi(trdtoken) << 2) |
                  1;
       }
     }
@@ -619,7 +625,24 @@ uint32_t sdt_instr(char *opc, char *rest_instr, context file_context)
   }
 
   // Return binary representation as uint32_t
-  printf("%d", sdt_type);
+  printf("%d\n", sdt_type);
+  if(sdt_type == 1) {
+    printf("ll_start: %d.\n", instr.ll.ll_start);
+    printf("sf: %d.\n", instr.ll.sf);
+    printf("ll_mid1: %d.\n", instr.ll.ll_mid1);
+    printf("simm19: %d.\n", instr.ll.simm19);
+    printf("rt: %d.\n", instr.ll.rt);
+  } else {
+    printf("sdt_start: %d.\n", instr.sdt.sdt_start);
+    printf("sf: %d.\n", instr.sdt.sf);
+    printf("sdt_mid1: %d.\n", instr.sdt.sdt_mid1);
+    printf("U: %d.\n", instr.sdt.U);
+    printf("sdt_mid2: %d.\n", instr.sdt.sdt_mid2);
+    printf("L: %d.\n", instr.sdt.L);
+    printf("offset: %d.\n", instr.sdt.offset);
+    printf("xn: %d.\n", instr.sdt.xn);
+    printf("rt: %d.\n", instr.sdt.rt);
+  }
   return sdt_to_binary(instr, sdt_type);
 }
 

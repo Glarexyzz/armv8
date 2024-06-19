@@ -28,7 +28,7 @@ uint32_t dp_imm_to_binary(dp_imm_instr instr){
 
 uint32_t arith_instr_to_binary(arith_instr instr){
     //  Convert to dp_imm or dp_reg then use those helper functions
-    if (instr.operand.imm) {
+    if (instr.operand.imm != NULL) {
         dp_imm_instr dp_instr;
         dp_instr.sf = instr.sf;
         dp_instr.opc = (instr.sub << 1) | (instr.flags << 0); // 11 for subs
@@ -56,7 +56,7 @@ uint32_t arith_instr_to_binary(arith_instr instr){
 
 
 // Converts a single data transfer instruction into a binary number
-uint32_t sdt_to_binary(sdt instr, sdt_type type){
+/*uint32_t sdt_to_binary(sdt instr, sdt_type type){
     switch(type) {
         case SDT:
             return (instr.sdt.sdt_start << 31) |
@@ -67,18 +67,39 @@ uint32_t sdt_to_binary(sdt instr, sdt_type type){
                 (instr.sdt.L << 22) |
                 (instr.sdt.offset << 10) |
                 (instr.sdt.xn << 5) |
-                instr.sdt.rt;
-        break;
+                (instr.sdt.rt << 0);
+            break;
 
         case LL:
             return (instr.ll.ll_start << 31) |
                 (instr.ll.sf << 30) |
                 (instr.ll.ll_mid1 << 24) |
                 (instr.ll.simm19 << 5) |
-                instr.ll.rt;
-        break;
+                (instr.ll.rt << 0);
+            break;
+    }
+    return EXIT_FAILURE;
+}*/
 
+uint32_t sdt_to_binary(sdt instr, sdt_type type) {
+    switch (type) {
+        case SDT:
+            return ((instr.sdt.sdt_start & 0x1) << 31) |
+                   ((instr.sdt.sf & 0x1) << 30) |
+                   ((instr.sdt.sdt_mid1 & 0x1F) << 25) |
+                   ((instr.sdt.U & 0x1) << 24) |
+                   ((instr.sdt.sdt_mid2 & 0x1) << 23) |
+                   ((instr.sdt.L & 0x1) << 22) |
+                   ((instr.sdt.offset & 0x3FFF) << 10) |
+                   ((instr.sdt.xn & 0x1F) << 5) |
+                   (instr.sdt.rt & 0x1F);
+        case LL:
+            return ((instr.ll.ll_start & 0x1) << 31) |
+                   ((instr.ll.sf & 0x1) << 30) |
+                   ((instr.ll.ll_mid1 & 0x3F) << 24) |
+                   ((instr.ll.simm19 & 0x7FFFF) << 5) |
+                   (instr.ll.rt & 0x1F);
         default:
-            return EXIT_FAILURE;
+            return EXIT_FAILURE;  // Error value
     }
 }

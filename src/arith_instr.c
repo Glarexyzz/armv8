@@ -20,12 +20,11 @@ int initialise_arith_instr(char *opc, arith_instr *instr){
   // Set bool: add, flags, rd/rn if needed (for neg/cmp(n))
 //  Returns numregs expected (not including operand)
   int NUMREGS = 2;
-  if (strncmp(opc, "add", 3) == 0 || strncmp(opc, "neg", 3) == 0) instr->sub = false;
-  else instr->sub = true;
+  
+  instr->sub = !(strncmp(opc, "add", 3) == 0 || strncmp(opc, "neg", 3) == 0 || strncmp(opc, "cmn", 3) == 0 );
 
   // check if opc is add, sub or neg for flags
-  if (strstr("add sub neg", opc) != NULL) instr->flags = false;
-  else instr->flags = true;
+  instr->flags = strstr("add sub neg", opc) == NULL;
 
   if (strncmp(opc, "neg", 3) == 0 || strncmp(opc, "cm", 2) == 0){
     NUMREGS--;
