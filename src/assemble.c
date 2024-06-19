@@ -53,11 +53,13 @@ int main(int argc, char **argv) {
   fclose(input_file);
   if( file_context->nerrors == 0 )		// no errors? output the file
 	{
+          free(file_context);
           free(output_file_name);
           return EXIT_SUCCESS;
 	}
   fprintf( stderr, "%d errors\n", file_context->nerrors );
   unlink(output_file_name);
+  free(file_context);
   free(output_file_name);
   return EXIT_FAILURE;
 }
