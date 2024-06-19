@@ -109,7 +109,6 @@ bool move_food(game * game) {
         for (int y = 0; y < game->grid_size.y; y++) {
             vector * potential_pos = new_vector(x, y);
             tile_type potential_tile = check_tile(*potential_pos, game);
-            printf("%d, %d, %d\n", x, y, food_tile);
             if (potential_tile == empty_tile) {
                 food_tile = food_tile - 1;
                 if (food_tile <= 0) {
