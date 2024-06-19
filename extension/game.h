@@ -14,7 +14,7 @@ typedef struct game {
 //oob - out of bounds, when the tile is outside of grid
 typedef enum tile_type {empty_tile, oob_tile, snake_tile, food_tile} tile_type;
 
-game * create_game(snake * snake, int grid_size);
+game * create_game(snake * snake,food * food, int grid_size_x, int grid_size_y);
 void free_game(game * game);
 tile_type check_tile(vector pos, game * game);
 

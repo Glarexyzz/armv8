@@ -15,12 +15,22 @@ int main () {
     keypad(stdscr, TRUE);
     noecho();
     nodelay(stdscr,TRUE);
+    curs_set(0);
     init();
     while (true)
     {
-        // update_stepped();
         delay(TICK_SPEED, update_stepped);
-        // update_tick();
+        update_tick();
+
+        char ch = getch();
+        if (ch == 'q') {
+            //quit game
+            endwin();
+            return 0;
+        }
+        
+        //clear inputs
+        flushinp();
     }
     
     return 0;
