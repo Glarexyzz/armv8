@@ -95,6 +95,7 @@ int move_snake(game * game) {
     }
 }
 
+//BUGGING - FOOD CAN STILL BE MOVED ONTO ITSELF
 bool move_food(game * game) {
     //Inefficient but idk
     int free_tiles = game->grid_size.x * game->grid_size.y - game->snake->length;
