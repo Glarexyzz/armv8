@@ -38,12 +38,14 @@ void draw_food(food * food, int offset_x, int offset_y) {
 
 void render(game * game) {
     clear();
-    int grid_offset_x = 5;
-    int grid_offset_y = 5;
+    int grid_offset_x = 1;
+    int grid_offset_y = 1;
     //origin is bottom left corner
-    draw_rec(5, 5, game->grid_size.x + 2, game->grid_size.y + 2);
+    draw_rec(grid_offset_x, grid_offset_y, game->grid_size.x + 2, game->grid_size.y + 2);
     draw_snake(game->snake, grid_offset_x + 1, grid_offset_y + 1);
     draw_food(game->food, grid_offset_x + 1, grid_offset_y + 1);
+    mvprintw(grid_offset_y + game->grid_size.y + 2, grid_offset_x,"SCORE: %d", game->score);
+    mvprintw(grid_offset_y + game->grid_size.y + 3, grid_offset_x,"Press q to quit");
 
     refresh();
 }

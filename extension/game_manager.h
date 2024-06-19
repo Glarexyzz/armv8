@@ -4,8 +4,8 @@
 #include "game.h"
 #include "utils.h"
 
-#define GRID_SIZE_X 20
-#define GRID_SIZE_Y 10
+#define GRID_SIZE_X 3
+#define GRID_SIZE_Y 3
 #define TICK_SPEED 200 //in milliseconds
 
 typedef enum screen_state {in_game,game_over} screen_state;

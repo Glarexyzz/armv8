@@ -112,7 +112,7 @@ bool move_food(game * game) {
             if (potential_tile == empty_tile) {
                 food_tile = food_tile - 1;
                 if (food_tile <= 0) {
-                    game->food->pos = *new_vector(x, y);
+                    game->food->pos = *potential_pos;
                     moved = true;
                     break;
                 }
