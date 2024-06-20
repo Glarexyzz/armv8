@@ -38,6 +38,7 @@ int get_sym(char *s)
     {
         if (strcmp(symtab[i].s, s) == 0)
         {
+            // DEBUG printf("Found %s\n",(symtab[i].s));
             return symtab[i].v;
         }
     }
@@ -78,9 +79,11 @@ bool build_symtab(context file_context, FILE *_)
     // Check if line is a label
     if (strchr(file_context->cur_line, ':') != NULL)
     {
-        // Remove colon
-        file_context->cur_line[strlen(file_context->cur_line) - 1] = '\0';
-        if (get_sym(file_context->cur_line) != -1)
+        // Remove colon & POTENTIAL WHITESPACE THAT CAUSES BUG
+        char *savepoint;
+        char *label = strtok_r(file_context->cur_line, ": ", &savepoint);
+        // file_context->cur_line[strlen(file_context->cur_line) - 1] = '\0';
+        if (get_sym(label) != -1)
         {
             error("Error: Duplicate label", file_context);
             return true;
@@ -90,7 +93,7 @@ bool build_symtab(context file_context, FILE *_)
             return true;
         }*/
         // Add symbol to symbol table
-        add_sym(file_context->cur_line, file_context->prog_lineno);
+        add_sym(label, file_context->prog_lineno);
         return true;
     }
     return false;
